@@ -10,12 +10,15 @@ export class API {
 	async get() {
 		try {
 			const response = await fetch(this.url);
-			if (!response.ok)
-				throw new Error(response.status);
-			const result = await response.json();
-			console.log(result);
+			let contentType = response.headers.get('content-type');
+			if (!contentType.startsWith('application/json;')) {
+				let text = await response.text();
+				throw new Error(text);
+			}
+			return await response.json();
 		} catch (error) {
-			alert(`${lexicon.error}: ${error}`); // TODO alert a generic error message
+			console.error(error);
+			alert(lexicon.error);
 		}
 	}
 }
