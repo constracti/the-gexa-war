@@ -1,6 +1,8 @@
 export const lexicon = {
-	title: 'The ΓΕΧΑ War',
-	error: 'Σφάλμα', // TODO generic error message
+	error: 'Προέκυψε σφάλμα. Ανανέωσε τη σελίδα και ξαναδοκίμασε.',
+	password: 'Συνθηματικό',
 	select: '(Επίλεξε)',
+	station: 'Σταθμός',
 	submit: 'Υποβολή',
+	title: 'The ΓΕΧΑ War',
 };

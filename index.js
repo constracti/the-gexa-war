@@ -2,7 +2,7 @@ import { api } from './common.js';
 import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
-const result = await api.get();
+const result = await api.get('station_list');
 
 /**
  * @type {(?string)[]}
@@ -12,21 +12,56 @@ station_list.splice(0, 0, null);
 
 document.body.appendChild(n({
 	tag: 'form',
-	submit: () => {
-		console.log('submit');
+	submit: async event => {
+		const form = event.currentTarget;
+		const result = await api.post('station_login', new FormData(form));
+		console.log(result);
 	},
 	content: [
 		n({
-			tag: 'select',
-			klass: 'form-select m-2',
-			content: station_list.map(station => n({
-				tag: 'option',
-				content: station ?? lexicon.select,
-			})),
+			class: 'm-2',
+			content: [
+				n({
+					tag: 'label',
+					class: 'form-label',
+					for: 'station',
+					content: lexicon.station,
+				}),
+				n({
+					tag: 'select',
+					class: 'form-select',
+					id: 'station',
+					name: 'station',
+					required: true,
+					content: station_list.map(station => n({
+						tag: 'option',
+						content: station ?? lexicon.select,
+					})),
+				}),
+			],
+		}),
+		n({
+			class: 'm-2',
+			content: [
+				n({
+					tag: 'label',
+					class: 'form-label',
+					for: 'password',
+					content: lexicon.password,
+				}),
+				n({
+					tag: 'input',
+					class: 'form-control',
+					id: 'password',
+					name: 'password',
+					required: true,
+					type: 'password',
+				}),
+			],
 		}),
 		n({
 			tag: 'button',
-			klass: 'm-2 btn btn-primary',
+			class: 'm-2 btn btn-primary',
 			content: lexicon.submit,
 		}),
 	],

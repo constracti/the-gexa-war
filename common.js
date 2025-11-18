@@ -3,7 +3,7 @@ import { lexicon } from './lexicon.js';
 
 (title => {
 	document.title = title;
-	for (let element of document.getElementsByTagName('h1'))
+	for (const element of document.getElementsByTagName('h1'))
 		element.innerHTML = title;
 })(lexicon.title);
 
