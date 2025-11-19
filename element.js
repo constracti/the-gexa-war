@@ -7,7 +7,8 @@
  * @param {?string} options.for
  * @param {?boolean} options.required
  * @param {?string} options.type
- * @param {?{(event: Event) => void}} options.submit // TODO pass event parameter
+ * @param {?string} options.value
+ * @param {?{(event: Event) => void}} options.submit
  * @param {?(string|HTMLElement[])} options.content
  * @returns {HTMLElement}
  */
@@ -26,6 +27,8 @@ export function n(options) {
 		options.required = false;
 	if (options.type === undefined)
 		options.type = null;
+	if (options.value === undefined)
+		options.value = null;
 	if (options.submit === undefined)
 		options.submit = null;
 	if (options.content === undefined)
@@ -43,6 +46,8 @@ export function n(options) {
 		element.required = true;
 	if (options.type !== null)
 		element.type = options.type;
+	if (options.value !== null)
+		element.value = options.value;
 	if (options.submit !== null) {
 		element.addEventListener('submit', event => {
 			event.preventDefault();
@@ -57,4 +62,33 @@ export function n(options) {
 			element.appendChild(child);
 	}
 	return element;
+}
+
+/**
+ * @param {{id: number, name: string}[]} option_list
+ * @param {?string} option_null
+ * @returns {HTMLOptionElement[]}
+ */
+export function n_option_list(option_list, option_null) {
+	if (option_null === undefined)
+		option_null = null;
+	/**
+	 * @type {HTMLOptionElement[]}
+	 */
+	const element_list = [];
+	if (option_null !== null) {
+		element_list.push(n({
+			tag: 'option',
+			value: '',
+			content: option_null,
+		}));
+	}
+	for (const option of option_list) {
+		element_list.push(n({
+			tag: 'option',
+			value: `${option.id}`,
+			content: option.name,
+		}));
+	}
+	return element_list;
 }

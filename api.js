@@ -49,7 +49,8 @@ export class API {
 			return await response.json();
 		} catch (error) {
 			console.error(error);
-			alert(lexicon.error);
+			alert(lexicon.error); // TODO display custom errors
+			throw new Error();
 		}
 	}
 }
