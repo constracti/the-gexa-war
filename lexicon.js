@@ -5,4 +5,5 @@ export const lexicon = {
 	station: 'Σταθμός',
 	submit: 'Υποβολή',
 	title: 'The ΓΕΧΑ War',
+	wrong_password: 'Πληκτρολόγησες λανθασμένο συνθηματικό.',
 };

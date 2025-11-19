@@ -35,9 +35,13 @@ document.body.appendChild(n({
 	submit: async event => {
 		const form = event.currentTarget;
 		/**
-		 * @type {{team_list: Team[], player_list: Player[]}}
+		 * @type {{team_list: Team[], player_list: Player[]}|null}
 		 */
 		const result = await api.post('station_login', new FormData(form));
+		if (result === null) {
+			alert(lexicon.wrong_password);
+			return;
+		}
 		const station = station_list.filter(station => station.id === parseInt(form.station.value)).at(0);
 		const password = form.password.value;
 		// TODO save station and password in local storage
