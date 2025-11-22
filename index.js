@@ -24,76 +24,91 @@ import { lexicon } from './lexicon.js';
  * @property {number} team
  */
 
-/**
- * @type {{station_list: Station[]}}
- */
-const result = await api.get('station_list');
-const station_list = result.station_list;
+const station_list = await (async () => {
+	/**
+	 * @type {{station_list: Station[]}}
+	 */
+	const result = await api.get('station_list');
+	return result.station_list;
+})();
 
-document.body.appendChild(n({
-	tag: 'form',
-	submit: async event => {
-		const form = event.currentTarget;
-		/**
-		 * @type {{team_list: Team[], player_list: Player[]}|null}
-		 */
-		const result = await api.post('station_login', new FormData(form));
-		if (result === null) {
-			alert(lexicon.wrong_password);
-			return;
-		}
-		const station = station_list.filter(station => station.id === parseInt(form.station.value)).at(0);
-		const password = form.password.value;
-		// TODO save station and password in local storage
-		console.log(result);
-		document.body.appendChild(n({
-			class: 'm-2',
-			content: station.name,
-		}));
-	},
-	content: [
-		n({
-			class: 'm-2',
-			content: [
-				n({
-					tag: 'label',
-					class: 'form-label',
-					for: 'station',
-					content: lexicon.station,
-				}),
-				n({
-					tag: 'select',
-					class: 'form-select',
-					id: 'station',
-					name: 'station',
-					required: true,
-					content: n_option_list(station_list, lexicon.select),
-				}),
-			],
-		}),
-		n({
-			class: 'm-2',
-			content: [
-				n({
-					tag: 'label',
-					class: 'form-label',
-					for: 'password',
-					content: lexicon.password,
-				}),
-				n({
-					tag: 'input',
-					class: 'form-control',
-					id: 'password',
-					name: 'password',
-					required: true,
-					type: 'password',
-				}),
-			],
-		}),
-		n({
-			tag: 'button',
-			class: 'm-2 btn btn-primary',
-			content: lexicon.submit,
-		}),
-	],
-}));
+// login form
+
+const login_station = document.getElementById('login-station');
+login_station.previousElementSibling.innerHTML = lexicon.station;
+n_option_list(station_list, lexicon.select).forEach(option => {
+	login_station.appendChild(option);
+});
+
+const login_password = document.getElementById('login-password');
+login_password.previousElementSibling.innerHTML = lexicon.password;
+
+document.getElementById('login-button').innerHTML = lexicon.submit;
+
+const login_form = document.getElementById('login-form');
+login_form.addEventListener('submit', async event => {
+	event.preventDefault();
+	const form = event.currentTarget;
+	/**
+	 * @type {{team_list: Team[], player_list: Player[]}|null}
+	 */
+	const result = await api.post('station_login', new FormData(form));
+	if (result === null) {
+		alert(lexicon.wrong_password);
+		return;
+	}
+	login_form.classList.add('d-none');
+	const station = station_list.filter(station => station.id === parseInt(login_station.value)).at(0);
+	const password = login_password.value;
+	localStorage.setItem('station', station.id.toString());
+	localStorage.setItem('password', password);
+	console.log(result);
+	document.body.appendChild(n({
+		class: 'm-2',
+		content: station.name,
+	}));
+});
+
+// init
+
+let station = (() => {
+	const station_str = localStorage.getItem('station');
+	if (station_str === null)
+		return null;
+	const station_id = parseInt(station_str);
+	const station_list_by_id = station_list.filter(station => station.id === station_id);
+	if (station_list_by_id.length !== 1)
+		return null;
+	return station_list_by_id[0];
+})();
+let password = localStorage.getItem('password');
+
+(async () => {
+	const formData = new FormData();
+	if (station === null) {
+		login_form.classList.remove('d-none');
+		return;
+	}
+	formData.append('station', station.id);
+	if (password === null) {
+		station = null;
+		login_form.classList.remove('d-none');
+		return;
+	}
+	formData.append('password', password);
+	/**
+	 * @type {{team_list: Team[], player_list: Player[]}|null}
+	 */
+	const result = await api.post('station_login', formData);
+	if (result === null) {
+		station = null;
+		password = null;
+		login_form.classList.remove('d-none');
+		return;
+	}
+	console.log(result);
+	document.body.appendChild(n({
+		class: 'm-2',
+		content: station.name,
+	}));
+})();

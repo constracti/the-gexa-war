@@ -8,6 +8,17 @@
 	</head>
 	<body class="container d-flex flex-column p-2">
 		<h1 class="m-2"></h1>
+		<form id="login-form" class="d-none">
+			<div class="m-2">
+				<label class="form-label" for="login-station"></label>
+				<select class="form-select" id="login-station" name="station" required="required"></select>
+			</div>
+			<div class="m-2">
+				<label class="form-label" for="login-password"></label>
+				<input class="form-control" id="login-password" type="password" name="password" required="required">
+			</div>
+			<button class="m-2 btn btn-primary" id="login-button"></button>
+		</form>
 		<script src="/color-mode.js"></script>
 		<script type="module" src="./index.js"></script>
 	</body>

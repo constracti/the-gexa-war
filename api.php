@@ -124,7 +124,9 @@ if (is_get('station_list')) {
 }
 
 if (is_post('station_login')) {
-	if (!station_code(post_int('station'), post_string('password')))
+	$id = post_int('station');
+	$password = post_string('password');
+	if (is_null($id) || is_null($password) || !station_code($id, $password))
 		json(NULL);
 	json([
 		'team_list' => team_all(),
