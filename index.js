@@ -33,20 +33,20 @@ const station_list = await (async () => {
 })();
 
 /**
- * @type {?{team_list: Team[], player_list: Player[], player: ?Player}}
+ * @type {?{station: Station, password: string, team_list: Team[], player_list: Player[], player: ?Player}}
  */
 let state = null;
 
 // login
 
-const login_station = document.getElementById('login-station');
-login_station.previousElementSibling.innerHTML = lexicon.station;
+const station_select = document.getElementById('station-select');
+station_select.previousElementSibling.innerHTML = lexicon.station;
 n_option_list(station_list, lexicon.select).forEach(option => {
-	login_station.appendChild(option);
+	station_select.appendChild(option);
 });
 
-const login_password = document.getElementById('login-password');
-login_password.previousElementSibling.innerHTML = lexicon.password;
+const password_input = document.getElementById('password-input');
+password_input.previousElementSibling.innerHTML = lexicon.password;
 
 document.getElementById('login-button').innerHTML = lexicon.login;
 
@@ -63,17 +63,17 @@ login_form.addEventListener('submit', async event => {
 		return;
 	}
 	login_form.classList.add('d-none');
-	station = station_list.filter(station => station.id === parseInt(login_station.value))[0];
-	password = login_password.value;
-	localStorage.setItem('station', station.id.toString());
-	localStorage.setItem('password', password);
 	state = {
+		station: station_list.filter(station => station.id === parseInt(station_select.value))[0],
+		password: password_input.value,
 		team_list: result.team_list,
 		player_list: result.player_list,
 		player: null,
 	};
+	localStorage.setItem('station', state.station.id.toString());
+	localStorage.setItem('password', state.password);
 	keyboard_search();
-	station_header.innerHTML = station.name;
+	station_header.innerHTML = state.station.name;
 	main_div.classList.remove('d-none');
 });
 
@@ -88,8 +88,6 @@ logout_button.innerHTML = lexicon.logout;
 logout_button.addEventListener('click', event => {
 	event.preventDefault();
 	main_div.classList.add('d-none');
-	station = null;
-	password = null;
 	station_header.innerHTML = '';
 	localStorage.removeItem('station');
 	localStorage.removeItem('password');
@@ -186,8 +184,10 @@ success_conquest.innerHTML = lexicon.success_conquest;
 
 // init
 
-// TODO move station and password in state
-let station = (() => {
+/**
+ * @returns {?Station}
+ */
+function station_read() {
 	const station_str = localStorage.getItem('station');
 	if (station_str === null)
 		return null;
@@ -196,38 +196,34 @@ let station = (() => {
 	if (station_list_by_id.length !== 1)
 		return null;
 	return station_list_by_id[0];
-})();
-let password = localStorage.getItem('password');
+}
 
 (async () => {
+	const station = station_read();
+	const password = localStorage.getItem('password');
+	if (station === null || password === null) {
+		login_form.classList.remove('d-none');
+		return;
+	}
 	const formData = new FormData();
-	if (station === null) {
-		login_form.classList.remove('d-none');
-		return;
-	}
 	formData.append('station', station.id);
-	if (password === null) {
-		station = null;
-		login_form.classList.remove('d-none');
-		return;
-	}
 	formData.append('password', password);
 	/**
 	 * @type {{team_list: Team[], player_list: Player[]}|null}
 	 */
 	const result = await api.post('station_login', formData);
 	if (result === null) {
-		station = null;
-		password = null;
 		login_form.classList.remove('d-none');
 		return;
 	}
 	state = {
+		station: station,
+		password: password,
 		team_list: result.team_list,
 		player_list: result.player_list,
 		player: null,
 	};
-	station_header.innerHTML = station.name;
+	station_header.innerHTML = state.station.name;
 	keyboard_search();
 	main_div.classList.remove('d-none');
 })();

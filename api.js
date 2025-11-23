@@ -49,7 +49,7 @@ export class API {
 			return await response.json();
 		} catch (error) {
 			console.error(error);
-			alert(lexicon.error); // TODO display custom errors
+			alert(lexicon.error);
 			throw new Error();
 		}
 	}
