@@ -19,7 +19,7 @@ import { lexicon } from './lexicon.js';
 /**
  * @typedef Player
  * @type {object}
- * @property {number} id
+ * @property {string} id
  * @property {string} name
  * @property {number} team
  */
@@ -32,7 +32,12 @@ const station_list = await (async () => {
 	return result.station_list;
 })();
 
-// login form
+/**
+ * @type {?{team_list: Team[], player_list: Player[], player: ?Player}}
+ */
+let state = null;
+
+// login
 
 const login_station = document.getElementById('login-station');
 login_station.previousElementSibling.innerHTML = lexicon.station;
@@ -43,7 +48,7 @@ n_option_list(station_list, lexicon.select).forEach(option => {
 const login_password = document.getElementById('login-password');
 login_password.previousElementSibling.innerHTML = lexicon.password;
 
-document.getElementById('login-button').innerHTML = lexicon.submit;
+document.getElementById('login-button').innerHTML = lexicon.login;
 
 const login_form = document.getElementById('login-form');
 login_form.addEventListener('submit', async event => {
@@ -58,19 +63,130 @@ login_form.addEventListener('submit', async event => {
 		return;
 	}
 	login_form.classList.add('d-none');
-	const station = station_list.filter(station => station.id === parseInt(login_station.value)).at(0);
-	const password = login_password.value;
+	station = station_list.filter(station => station.id === parseInt(login_station.value))[0];
+	password = login_password.value;
 	localStorage.setItem('station', station.id.toString());
 	localStorage.setItem('password', password);
-	console.log(result);
-	document.body.appendChild(n({
-		class: 'm-2',
-		content: station.name,
-	}));
+	state = {
+		team_list: result.team_list,
+		player_list: result.player_list,
+		player: null,
+	};
+	keyboard_search();
+	station_header.innerHTML = station.name;
+	main_div.classList.remove('d-none');
 });
+
+// main
+
+const main_div = document.getElementById('main-div');
+
+const station_header = document.getElementById('station-header');
+
+const logout_button = document.getElementById('logout-button');
+logout_button.innerHTML = lexicon.logout;
+logout_button.addEventListener('click', event => {
+	event.preventDefault();
+	main_div.classList.add('d-none');
+	station = null;
+	password = null;
+	station_header.innerHTML = '';
+	localStorage.removeItem('station');
+	localStorage.removeItem('password');
+	keyboard_search();
+	state = null;
+	login_form.classList.remove('d-none');
+});
+
+const keyboard_alert = document.getElementById('keyboard-alert');
+
+/**
+ * @type {HTMLInputElement}
+ */
+const keyboard_screen = document.getElementById('keyboard-screen');
+
+/**
+ * @param {string} query
+ * @returns {void}
+ */
+function keyboard_search(query) {
+	if (query === undefined)
+		query = '';
+	keyboard_screen.value = query;
+	if (query === '') {
+		state.player = null;
+		keyboard_alert.classList.remove('alert-success');
+		keyboard_alert.classList.remove('alert-warning');
+		keyboard_alert.classList.add('alert-info');
+		keyboard_alert.innerHTML = lexicon.player_info;
+		keyboard_delete.disabled = true;
+		success_simple.disabled = true;
+		success_neutralization.disabled = true;
+		success_conquest.disabled = true;
+		return;
+	}
+	keyboard_delete.disabled = false;
+	const player_list = state.player_list.filter(player => player.id === query);
+	if (player_list.length !== 1) {
+		state.player = null;
+		keyboard_alert.classList.remove('alert-success');
+		keyboard_alert.classList.add('alert-warning');
+		keyboard_alert.classList.remove('alert-info');
+		keyboard_alert.innerHTML = lexicon.player_warning;
+		success_simple.disabled = true;
+		success_neutralization.disabled = true;
+		success_conquest.disabled = true;
+		return;
+	}
+	const player = player_list[0];
+	const team = state.team_list.filter(team => team.id === player.team)[0];
+	keyboard_alert.classList.add('alert-success');
+	keyboard_alert.classList.remove('alert-warning');
+	keyboard_alert.classList.remove('alert-info');
+	keyboard_alert.innerHTML = `${player.name} ${lexicon.player_from} ${team.name}`;
+	success_simple.disabled = false;
+	success_neutralization.disabled = false;
+	success_conquest.disabled = false;
+}
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const keyboard_delete = document.getElementById('keyboard-delete');
+keyboard_delete.addEventListener('click', event => {
+	event.preventDefault();
+	keyboard_search();
+});
+
+for (const keyboard_number of document.getElementsByClassName('keyboard-number')) {
+	keyboard_number.addEventListener('click', event => {
+		keyboard_search(keyboard_screen.value + event.currentTarget.innerHTML);
+	});
+}
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const success_simple = document.getElementById('success-simple');
+success_simple.innerHTML = lexicon.success_simple;
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const success_neutralization = document.getElementById('success-neutralization');
+success_neutralization.innerHTML = lexicon.success_neutralization;
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const success_conquest = document.getElementById('success-conquest');
+success_conquest.innerHTML = lexicon.success_conquest;
+
+// TODO implement success handlers
 
 // init
 
+// TODO move station and password in state
 let station = (() => {
 	const station_str = localStorage.getItem('station');
 	if (station_str === null)
@@ -106,9 +222,12 @@ let password = localStorage.getItem('password');
 		login_form.classList.remove('d-none');
 		return;
 	}
-	console.log(result);
-	document.body.appendChild(n({
-		class: 'm-2',
-		content: station.name,
-	}));
+	state = {
+		team_list: result.team_list,
+		player_list: result.player_list,
+		player: null,
+	};
+	station_header.innerHTML = station.name;
+	keyboard_search();
+	main_div.classList.remove('d-none');
 })();

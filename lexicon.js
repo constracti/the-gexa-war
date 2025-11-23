@@ -1,9 +1,16 @@
 export const lexicon = {
 	error: 'Προέκυψε σφάλμα. Ανανέωσε τη σελίδα και ξαναδοκίμασε.',
+	login: 'Είσοδος',
+	logout: 'Έξοδος',
 	password: 'Συνθηματικό',
+	player_from: 'από',
+	player_info: 'Καταχώρισε τον κωδικό του παίκτη.',
+	player_warning: 'Δεν βρέθηκε παίκτης με αυτό τον κωδικό.',
 	select: '(Επίλεξε)',
+	success_simple: 'Επιτυχία',
+	success_neutralization: 'Επιτυχία και εξουδετέρωση',
+	success_conquest: 'Επιτυχία και κατάκτηση',
 	station: 'Σταθμός',
-	submit: 'Υποβολή',
 	title: 'The ΓΕΧΑ War',
 	wrong_password: 'Πληκτρολόγησες λανθασμένο συνθηματικό.',
 };
