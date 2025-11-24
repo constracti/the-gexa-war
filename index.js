@@ -85,8 +85,7 @@ const station_header = document.getElementById('station-header');
 
 const logout_button = document.getElementById('logout-button');
 logout_button.innerHTML = lexicon.logout;
-logout_button.addEventListener('click', event => {
-	event.preventDefault();
+logout_button.addEventListener('click', () => {
 	main_div.classList.add('d-none');
 	station_header.innerHTML = '';
 	localStorage.removeItem('station');
@@ -118,9 +117,7 @@ function keyboard_search(query) {
 		keyboard_alert.classList.add('alert-info');
 		keyboard_alert.innerHTML = lexicon.player_info;
 		keyboard_delete.disabled = true;
-		success_simple.disabled = true;
-		success_neutralization.disabled = true;
-		success_conquest.disabled = true;
+		keyboard_success_array.forEach(button => button.disabled = true);
 		return;
 	}
 	keyboard_delete.disabled = false;
@@ -131,28 +128,23 @@ function keyboard_search(query) {
 		keyboard_alert.classList.add('alert-warning');
 		keyboard_alert.classList.remove('alert-info');
 		keyboard_alert.innerHTML = lexicon.player_warning;
-		success_simple.disabled = true;
-		success_neutralization.disabled = true;
-		success_conquest.disabled = true;
+		keyboard_success_array.forEach(button => button.disabled = true);
 		return;
 	}
-	const player = player_list[0];
-	const team = state.team_list.filter(team => team.id === player.team)[0];
+	state.player = player_list[0];
+	const team = state.team_list.filter(team => team.id === state.player.team)[0];
 	keyboard_alert.classList.add('alert-success');
 	keyboard_alert.classList.remove('alert-warning');
 	keyboard_alert.classList.remove('alert-info');
-	keyboard_alert.innerHTML = `${player.name} ${lexicon.player_from} ${team.name}`;
-	success_simple.disabled = false;
-	success_neutralization.disabled = false;
-	success_conquest.disabled = false;
+	keyboard_alert.innerHTML = `${state.player.name} ${lexicon.player_from} ${team.name}`;
+	keyboard_success_array.forEach(button => button.disabled = false);
 }
 
 /**
  * @type {HTMLButtonElement}
  */
 const keyboard_delete = document.getElementById('keyboard-delete');
-keyboard_delete.addEventListener('click', event => {
-	event.preventDefault();
+keyboard_delete.addEventListener('click', () => {
 	keyboard_search();
 });
 
@@ -163,24 +155,37 @@ for (const keyboard_number of document.getElementsByClassName('keyboard-number')
 }
 
 /**
- * @type {HTMLButtonElement}
+ * @type {HTMLButtonElement[]}
  */
-const success_simple = document.getElementById('success-simple');
-success_simple.innerHTML = lexicon.success_simple;
-
-/**
- * @type {HTMLButtonElement}
- */
-const success_neutralization = document.getElementById('success-neutralization');
-success_neutralization.innerHTML = lexicon.success_neutralization;
-
-/**
- * @type {HTMLButtonElement}
- */
-const success_conquest = document.getElementById('success-conquest');
-success_conquest.innerHTML = lexicon.success_conquest;
-
-// TODO implement success handlers
+const keyboard_success_array = Array.from(document.getElementsByClassName('keyboard-success'));
+keyboard_success_array.forEach(button => {
+	switch (button.dataset.success) {
+		case 'simple':
+			button.innerHTML = lexicon.success_simple;
+			break;
+		case 'neutralization':
+			button.innerHTML = lexicon.success_neutralization;
+			break;
+		case 'conquest':
+			button.innerHTML = lexicon.success_conquest;
+			break;
+	}
+	button.addEventListener('click', async () => {
+		const message = `${button.innerHTML}: ${state.player.name}`;
+		if (!confirm(message))
+			return;
+		const formData = new FormData();
+		formData.append('station', state.station.id);
+		formData.append('password', state.password);
+		formData.append('type', button.dataset.success);
+		formData.append('player', state.player.id);
+		/**
+		 * @type {null}
+		 */
+		const result = await api.post('player_success', formData);
+		keyboard_search();
+	});
+});
 
 // init
 

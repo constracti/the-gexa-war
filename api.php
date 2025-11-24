@@ -32,7 +32,7 @@ function station_all(): array {
 	return $list;
 }
 
-function station_code(int $id, string $code): bool {
+function station_matches(int $id, string $code): bool {
 	global $db;
 	$stmt = $db->prepare('SELECT `id` FROM `station` WHERE `id` = ? AND `code` = ?');
 	$stmt->bind_param('is', $id, $code);
@@ -74,6 +74,18 @@ function player_all(): array {
 	return $list;
 }
 
+function player_exists(string $id): bool {
+	global $db;
+	$stmt = $db->prepare('SELECT `id` FROM `player` WHERE `id` = ?');
+	$stmt->bind_param('s', $id);
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$item = $rslt->fetch_assoc();
+	$rslt->free();
+	$stmt->close();
+	return !is_null($item);
+}
+
 // api
 
 function json(mixed $mixed): void {
@@ -81,7 +93,7 @@ function json(mixed $mixed): void {
 	exit(json_encode($mixed));
 }
 
-function get_string(string $key): ?string {
+function get_string_nullable(string $key): ?string {
 	if (!isset($_GET[$key]))
 		return NULL;
 	$value = $_GET[$key];
@@ -90,31 +102,31 @@ function get_string(string $key): ?string {
 	return $value;
 }
 
-function post_string(string $key): ?string {
+function post_string(string $key): string {
 	if (!isset($_POST[$key]))
-		return NULL;
+		exit($key);
 	$value = $_POST[$key];
 	if (!is_string($value))
-		return NULL;
+		exit($key);
 	return $value;
 }
 
-function post_int(string $key): ?int {
+function post_int(string $key): int {
 	$value = post_string($key);
 	if (is_null($value))
-		return NULL;
+		exit($key);
 	$value = filter_var($value, FILTER_VALIDATE_INT);
 	if ($value === FALSE)
-		return NULL;
+		exit($key);
 	return $value;
 }
 
 function is_get(string $action): bool {
-	return $_SERVER['REQUEST_METHOD'] === 'GET' && get_string('action') === $action;
+	return $_SERVER['REQUEST_METHOD'] === 'GET' && get_string_nullable('action') === $action;
 }
 
 function is_post(string $action): bool {
-	return $_SERVER['REQUEST_METHOD'] === 'POST' && get_string('action') === $action;
+	return $_SERVER['REQUEST_METHOD'] === 'POST' && get_string_nullable('action') === $action;
 }
 
 if (is_get('station_list')) {
@@ -124,9 +136,9 @@ if (is_get('station_list')) {
 }
 
 if (is_post('station_login')) {
-	$id = post_int('station');
+	$station = post_int('station');
 	$password = post_string('password');
-	if (is_null($id) || is_null($password) || !station_code($id, $password))
+	if (!station_matches($station, $password))
 		json(NULL);
 	json([
 		'team_list' => team_all(),
@@ -134,6 +146,19 @@ if (is_post('station_login')) {
 	]);
 }
 
-// TODO game GET
-
 // TODO declare success & possible neutralization or conquest POST who, where
+if (is_post('player_success')) {
+	$station = post_int('station');
+	$password = post_string('password');
+	if (!station_matches($station, $password))
+		exit('credentials');
+	$type = post_string('type');
+	if (!in_array($type, ['simple', 'neutralization', 'conquest'], TRUE))
+		exit('type');
+	$player = post_string('player');
+	if (!player_exists($player))
+		exit('player');
+	json(NULL);
+}
+
+// TODO game GET
