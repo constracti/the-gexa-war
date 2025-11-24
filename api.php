@@ -86,6 +86,23 @@ function player_exists(string $id): bool {
 	return !is_null($item);
 }
 
+function player_points(): array {
+	global $db;
+	$stmt = $db->prepare('
+	SELECT `player`.`id`, `player`.`name`, `player`.`team`, COUNT(`success`.`id`) AS `points` FROM `player`
+	LEFT JOIN `success` ON `success`.`player` = `player`.`id`
+	GROUP BY `player`.`id`, `player`.`name`, `player`.`team`
+	ORDER BY `player`.`name` ASC, `player`.`id` ASC');
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$list = [];
+	while (!is_null($item = $rslt->fetch_assoc()))
+		$list[] = $item;
+	$rslt->free();
+	$stmt->close();
+	return $list;
+}
+
 // success
 
 function success_insert(int $station, string $player, string $type): void {
@@ -173,10 +190,16 @@ if (is_post('player_success')) {
 	json(NULL);
 }
 
+// TODO set game duration
+
 if (is_get('game')) {
 	json([
 		'station_list' => station_all(),
 		'team_list' => team_all(),
 		'player_list' => player_all(),
 	]);
+}
+
+if (is_get('player_points')) {
+	json(player_points());
 }
