@@ -173,4 +173,10 @@ if (is_post('player_success')) {
 	json(NULL);
 }
 
-// TODO game GET
+if (is_get('game')) {
+	json([
+		'station_list' => station_all(),
+		'team_list' => team_all(),
+		'player_list' => player_all(),
+	]);
+}
