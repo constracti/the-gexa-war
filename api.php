@@ -201,5 +201,8 @@ if (is_get('game')) {
 }
 
 if (is_get('player_points')) {
-	json(player_points());
+	json([
+		'team_list' => team_all(),
+		'player_list' => player_points(),
+	]);
 }
