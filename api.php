@@ -86,6 +86,18 @@ function player_exists(string $id): bool {
 	return !is_null($item);
 }
 
+// success
+
+function success_insert(int $station, string $player, string $type): void {
+	global $db;
+	$stmt = $db->prepare('INSERT INTO `success` (`station`, `player`, `type`, `dt`) VALUES (?, ?, ?, ?)');
+	$dti = new DateTimeImmutable();
+	$dt = $dti->format('Y-m-d H:i:s');
+	$stmt->bind_param('isss', $station, $player, $type, $dt);
+	$stmt->execute();
+	$stmt->close();
+}
+
 // api
 
 function json(mixed $mixed): void {
@@ -146,7 +158,6 @@ if (is_post('station_login')) {
 	]);
 }
 
-// TODO declare success & possible neutralization or conquest POST who, where
 if (is_post('player_success')) {
 	$station = post_int('station');
 	$password = post_string('password');
@@ -158,6 +169,7 @@ if (is_post('player_success')) {
 	$player = post_string('player');
 	if (!player_exists($player))
 		exit('player');
+	success_insert($station, $player, $type);
 	json(NULL);
 }
 
