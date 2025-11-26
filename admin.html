@@ -22,6 +22,15 @@
 				<h2 class="m-2" id="admin-heading"></h2>
 				<button class="m-2 btn btn-secondary" id="logout-button"></button>
 			</div>
+			<form id="config-form" class="d-flex flex-column">
+				<div class="m-2">
+					<label class="form-label" for="deadline-input"></label>
+					<input class="form-control" id="deadline-input" type="datetime-local" name="deadline" required="required">
+				</div>
+				<div class="m-2">
+					<button class="btn btn-primary" id="submit-button"></button>
+				</div>
+			</form>
 		</div>
 		<script src="/color-mode.js"></script>
 		<script type="module" src="./admin.js"></script>

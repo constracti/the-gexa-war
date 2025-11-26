@@ -1,6 +1,7 @@
 <?php
 
 require_once 'config.php';
+require_once 'dt.php';
 
 // database
 
@@ -15,6 +16,32 @@ try {
 		exit('mysqli::set_charset');
 } catch (mysqli_sql_exception $e) {
 	exit('mysqli::set_charset');
+}
+
+// config
+
+function config_get_int(string $name, int $default): int {
+	global $db;
+	$stmt = $db->prepare('SELECT `value` FROM `config` WHERE `name` = ?');
+	$stmt->bind_param('s', $name);
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$item = $rslt->fetch_assoc();
+	$rslt->free();
+	$stmt->close();
+	if (is_null($item))
+		return $default;
+	$value = unserialize($item['value']);
+	return $value;
+}
+
+function config_set_int(string $name, int $value): void {
+	$value = serialize($value);
+	global $db;
+	$stmt = $db->prepare('REPLACE INTO `config` (`name`, `value`) VALUES (?, ?)');
+	$stmt->bind_param('ss', $name, $value);
+	$stmt->execute();
+	$stmt->close();
 }
 
 // station
@@ -106,10 +133,11 @@ function player_points(): array {
 // success
 
 function success_insert(int $station, string $player, string $type): void {
+	$dt = new DateTimeImmutable();
+	$dt = new DT($dt);
+	$dt = $dt->to_sql();
 	global $db;
 	$stmt = $db->prepare('INSERT INTO `success` (`station`, `player`, `type`, `dt`) VALUES (?, ?, ?, ?)');
-	$dti = new DateTimeImmutable();
-	$dt = $dti->format('Y-m-d H:i:s');
 	$stmt->bind_param('isss', $station, $player, $type, $dt);
 	$stmt->execute();
 	$stmt->close();
@@ -160,7 +188,23 @@ function is_post(string $action): bool {
 
 if (is_post('admin_login')) {
 	$password = post_string('password');
-	json($password === ADMIN_PASS);
+	if ($password !== ADMIN_PASS)
+		json(NULL);
+	$deadline = config_get_int('deadline', time());
+	$deadline = DT::from_int($deadline);
+	json([
+		'deadline' => $deadline->to_js(),
+	]);
+}
+
+if (is_post('admin_config')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$deadline = post_string('deadline');
+	$deadline = DT::from_js($deadline);
+	config_set_int('deadline', $deadline->to_int());
+	json(NULL);
 }
 
 if (is_get('station_list')) {

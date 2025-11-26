@@ -1,6 +1,7 @@
 export const lexicon = {
 	admin: 'Διαχείριση',
 	error: 'Προέκυψε σφάλμα. Ανανέωσε τη σελίδα και ξαναδοκίμασε.',
+	deadline: 'Λήξη',
 	login: 'Είσοδος',
 	logout: 'Έξοδος',
 	password: 'Συνθηματικό',
@@ -8,6 +9,7 @@ export const lexicon = {
 	player_info: 'Καταχώρισε τον κωδικό του παίκτη.',
 	player_warning: 'Δεν βρέθηκε παίκτης με αυτό τον κωδικό.',
 	select: '(Επίλεξε)',
+	submit: 'Υποβολή',
 	success_simple: 'Επιτυχία',
 	success_neutralization: 'Επιτυχία και εξουδετέρωση',
 	success_conquest: 'Επιτυχία και κατάκτηση',
