@@ -2,9 +2,28 @@ import { api } from './common.js';
 import { lexicon } from './lexicon.js';
 
 /**
- * @type {?{password: string, deadline: string}}
+ * @typedef {{deadline: string, reward_success: number, reward_conquest: number}|null} AdminLogin
+ */
+
+/**
+ * @type {?{password: string, deadline: string, reward_success: number, reward_conquest: number}}
  */
 let state = null;
+
+function refresh() {
+	if (state !== null) {
+		login_form.classList.add('d-none');
+		login_form.reset();
+		deadline_input.value = state.deadline;
+		reward_success_input.value = state.reward_success.toString();
+		reward_conquest_input.value = state.reward_conquest.toString();
+		main_div.classList.remove('d-none');
+	} else {
+		main_div.classList.add('d-none');
+		config_form.reset();
+		login_form.classList.remove('d-none');
+	}
+}
 
 // login
 
@@ -23,23 +42,21 @@ const login_form = document.getElementById('login-form');
 login_form.addEventListener('submit', async event => {
 	event.preventDefault();
 	/**
-	 * @type {{deadline: string}|null}
+	 * @type {AdminLogin}
 	 */
 	const result = await api.post('admin_login', new FormData(login_form));
 	if (result === null) {
 		alert(lexicon.wrong_password);
 		return;
 	}
-	login_form.classList.add('d-none');
-	const password = password_input.value;
-	login_form.reset();
 	state = {
-		password: password,
+		password: password_input.value,
 		deadline: result.deadline,
+		reward_success: result.reward_success,
+		reward_conquest: result.reward_conquest,
 	};
-	deadline_input.value = state.deadline;
-	localStorage.setItem('password', password);
-	main_div.classList.remove('d-none');
+	localStorage.setItem('password', state.password);
+	refresh();
 });
 
 // main
@@ -57,10 +74,9 @@ document.getElementById('admin-heading').innerHTML = lexicon.admin;
 const logout_button = document.getElementById('logout-button');
 logout_button.innerHTML = lexicon.logout;
 logout_button.addEventListener('click', () => {
-	main_div.classList.add('d-none');
-	localStorage.removeItem('password');
 	state = null;
-	login_form.classList.remove('d-none');
+	localStorage.removeItem('password');
+	refresh();
 });
 
 /**
@@ -68,6 +84,18 @@ logout_button.addEventListener('click', () => {
  */
 const deadline_input = document.getElementById('deadline-input');
 deadline_input.previousElementSibling.innerHTML = lexicon.deadline;
+
+/**
+ * @type {HTMLInputElement}
+ */
+const reward_success_input = document.getElementById('reward-success-input');
+reward_success_input.previousElementSibling.innerHTML = lexicon.reward_success;
+
+/**
+ * @type {HTMLInputElement}
+ */
+const reward_conquest_input = document.getElementById('reward-conquest-input');
+reward_conquest_input.previousElementSibling.innerHTML = lexicon.reward_conquest;
 
 document.getElementById('submit-button').innerHTML = lexicon.submit;
 
@@ -97,7 +125,7 @@ config_form.addEventListener('submit', async event => {
 	const formData = new FormData();
 	formData.append('password', password);
 	/**
-	 * @type {{deadline: string}|null}
+	 * @type {AdminLogin}
 	 */
 	const result = await api.post('admin_login', formData);
 	if (result === null) {
@@ -107,7 +135,8 @@ config_form.addEventListener('submit', async event => {
 	state = {
 		password: password,
 		deadline: result.deadline,
+		reward_success: result.reward_success,
+		reward_conquest: result.reward_conquest,
 	};
-	deadline_input.value = state.deadline;
-	main_div.classList.remove('d-none');
+	refresh();
 })();

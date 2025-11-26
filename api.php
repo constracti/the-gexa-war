@@ -192,8 +192,12 @@ if (is_post('admin_login')) {
 		json(NULL);
 	$deadline = config_get_int('deadline', time());
 	$deadline = DT::from_int($deadline);
+	$reward_success = config_get_int('reward_success', 1);
+	$reward_conquest = config_get_int('reward_conquest', 1);
 	json([
 		'deadline' => $deadline->to_js(),
+		'reward_success' => $reward_success,
+		'reward_conquest' => $reward_conquest,
 	]);
 }
 
@@ -203,7 +207,11 @@ if (is_post('admin_config')) {
 		exit('password');
 	$deadline = post_string('deadline');
 	$deadline = DT::from_js($deadline);
+	$reward_success = post_int('reward_success');
+	$reward_conquest = post_int('reward_conquest');
 	config_set_int('deadline', $deadline->to_int());
+	config_set_int('reward_success', $reward_success);
+	config_set_int('reward_conquest', $reward_conquest);
 	json(NULL);
 }
 
@@ -214,6 +222,7 @@ if (is_get('station_list')) {
 }
 
 if (is_post('station_login')) {
+	// TODO return deadline
 	$station = post_int('station');
 	$password = post_string('password');
 	if (!station_matches($station, $password))
@@ -225,6 +234,7 @@ if (is_post('station_login')) {
 }
 
 if (is_post('player_success')) {
+	// TODO check deadline
 	$station = post_int('station');
 	$password = post_string('password');
 	if (!station_matches($station, $password))
@@ -238,8 +248,6 @@ if (is_post('player_success')) {
 	success_insert($station, $player, $type);
 	json(NULL);
 }
-
-// TODO set game duration
 
 if (is_get('game')) {
 	json([

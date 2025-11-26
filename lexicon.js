@@ -8,6 +8,8 @@ export const lexicon = {
 	player_from: 'από',
 	player_info: 'Καταχώρισε τον κωδικό του παίκτη.',
 	player_warning: 'Δεν βρέθηκε παίκτης με αυτό τον κωδικό.',
+	reward_success: 'Πόντοι επιτυχίας',
+	reward_conquest: 'Πόντοι κατάκτησης ανά λεπτό',
 	select: '(Επίλεξε)',
 	submit: 'Υποβολή',
 	success_simple: 'Επιτυχία',

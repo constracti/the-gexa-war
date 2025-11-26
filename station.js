@@ -17,6 +17,10 @@ const station_list = await (async () => {
 })();
 
 /**
+ * @typedef {{team_list: Team[], player_list: Player[]}|null} StationLogin
+ */
+
+/**
  * @type {?{station: Station, password: string, team_list: Team[], player_list: Player[], player: ?Player}}
  */
 let state = null;
@@ -47,7 +51,7 @@ const login_form = document.getElementById('login-form');
 login_form.addEventListener('submit', async event => {
 	event.preventDefault();
 	/**
-	 * @type {{team_list: Team[], player_list: Player[]}|null}
+	 * @type {StationLogin}
 	 */
 	const result = await api.post('station_login', new FormData(login_form));
 	if (result === null) {
@@ -218,7 +222,7 @@ function station_read() {
 	formData.append('station', station.id);
 	formData.append('password', password);
 	/**
-	 * @type {{team_list: Team[], player_list: Player[]}|null}
+	 * @type {StationLogin}
 	 */
 	const result = await api.post('station_login', formData);
 	if (result === null) {
