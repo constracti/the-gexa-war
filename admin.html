@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="el">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title></title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+	</head>
+	<body class="container d-flex flex-column p-2">
+		<h1 class="m-2"></h1>
+		<form id="login-form" class="d-flex flex-column d-none">
+			<div class="m-2">
+				<label class="form-label" for="password-input"></label>
+				<input class="form-control" id="password-input" type="password" name="password" required="required">
+			</div>
+			<div class="m-2">
+				<button class="btn btn-primary" id="login-button"></button>
+			</div>
+		</form>
+		<div id="main-div" class="d-flex flex-column d-none">
+			<div class="d-flex flex-row justify-content-between align-items-center">
+				<h2 class="m-2" id="admin-heading"></h2>
+				<button class="m-2 btn btn-secondary" id="logout-button"></button>
+			</div>
+		</div>
+		<script src="/color-mode.js"></script>
+		<script type="module" src="./admin.js"></script>
+	</body>
+</html>

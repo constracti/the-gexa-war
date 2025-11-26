@@ -158,6 +158,11 @@ function is_post(string $action): bool {
 	return $_SERVER['REQUEST_METHOD'] === 'POST' && get_string_nullable('action') === $action;
 }
 
+if (is_post('admin_login')) {
+	$password = post_string('password');
+	json($password === ADMIN_PASS);
+}
+
 if (is_get('station_list')) {
 	json([
 		'station_list' => station_all(),

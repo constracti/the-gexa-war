@@ -23,55 +23,72 @@ let state = null;
 
 // login
 
+/**
+ * @type {HTMLSelectElement}
+ */
 const station_select = document.getElementById('station-select');
 station_select.previousElementSibling.innerHTML = lexicon.station;
 n_option_list(station_list, lexicon.select).forEach(option => {
 	station_select.appendChild(option);
 });
 
+/**
+ * @type {HTMLInputElement}
+ */
 const password_input = document.getElementById('password-input');
 password_input.previousElementSibling.innerHTML = lexicon.password;
 
 document.getElementById('login-button').innerHTML = lexicon.login;
 
+/**
+ * @type {HTMLFormElement}
+ */
 const login_form = document.getElementById('login-form');
 login_form.addEventListener('submit', async event => {
 	event.preventDefault();
-	const form = event.currentTarget;
 	/**
 	 * @type {{team_list: Team[], player_list: Player[]}|null}
 	 */
-	const result = await api.post('station_login', new FormData(form));
+	const result = await api.post('station_login', new FormData(login_form));
 	if (result === null) {
 		alert(lexicon.wrong_password);
 		return;
 	}
 	login_form.classList.add('d-none');
+	const station = station_list.filter(station => station.id === parseInt(station_select.value))[0];
+	const password = password_input.value;
+	login_form.reset();
 	state = {
-		station: station_list.filter(station => station.id === parseInt(station_select.value))[0],
-		password: password_input.value,
+		station: station,
+		password: password,
 		team_list: result.team_list,
 		player_list: result.player_list,
 		player: null,
 	};
-	localStorage.setItem('station', state.station.id.toString());
-	localStorage.setItem('password', state.password);
+	localStorage.setItem('station', station.id.toString());
+	localStorage.setItem('password', password);
 	keyboard_search();
-	station_header.innerHTML = state.station.name;
+	station_heading.innerHTML = state.station.name;
 	main_div.classList.remove('d-none');
 });
 
 // main
 
+/**
+ * @type {HTMLDivElement}
+ */
 const main_div = document.getElementById('main-div');
 
-const station_header = document.getElementById('station-header');
+/**
+ * @type {HTMLHeadingElement}
+ */
+const station_heading = document.getElementById('station-heading');
 
 const logout_button = document.getElementById('logout-button');
 logout_button.innerHTML = lexicon.logout;
 logout_button.addEventListener('click', () => {
 	main_div.classList.add('d-none');
-	station_header.innerHTML = '';
+	station_heading.innerHTML = '';
 	localStorage.removeItem('station');
 	localStorage.removeItem('password');
 	keyboard_search();
@@ -79,6 +96,9 @@ logout_button.addEventListener('click', () => {
 	login_form.classList.remove('d-none');
 });
 
+/**
+ * @type {HTMLDivElement}
+ */
 const keyboard_alert = document.getElementById('keyboard-alert');
 
 /**
@@ -212,7 +232,7 @@ function station_read() {
 		player_list: result.player_list,
 		player: null,
 	};
-	station_header.innerHTML = state.station.name;
+	station_heading.innerHTML = state.station.name;
 	keyboard_search();
 	main_div.classList.remove('d-none');
 })();
