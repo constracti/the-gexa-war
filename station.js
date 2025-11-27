@@ -17,13 +17,37 @@ const station_list = await (async () => {
 })();
 
 /**
- * @typedef {{team_list: Team[], player_list: Player[]}|null} StationLogin
+ * @typedef {{deadline: string, team_list: Team[], player_list: Player[]}|null} StationLogin
  */
 
 /**
- * @type {?{station: Station, password: string, team_list: Team[], player_list: Player[], player: ?Player}}
+ * @type {?{station: Station, password: string, deadline: string, team_list: Team[], player_list: Player[], player: ?Player}}
  */
 let state = null;
+
+function refresh() {
+	deadline_div.classList.remove('alert-info', 'alert-warning', 'alert-danger');
+	if (state !== null) {
+		login_form.classList.add('d-none');
+		login_form.reset();
+		station_heading.innerHTML = state.station.name;
+		const deadline_minutes = (Date.parse(state.deadline) - Date.now()) / 60000; // TODO check every second
+		if (deadline_minutes < 0)
+			deadline_div.classList.add('alert-danger');
+		else if (deadline_minutes < 10)
+			deadline_div.classList.add('alert-warning');
+		else
+			deadline_div.classList.add('alert-info');
+		deadline_div.classList.add('alert-info');
+		deadline_div.innerHTML = `${lexicon.deadline}: ${state.deadline.split(' ')[1]}`;
+		main_div.classList.remove('d-none');
+	} else {
+		main_div.classList.add('d-none');
+		station_heading.innerHTML = '';
+		deadline_div.innerHTML = '';
+		login_form.classList.remove('d-none');
+	}
+}
 
 // login
 
@@ -58,22 +82,18 @@ login_form.addEventListener('submit', async event => {
 		alert(lexicon.wrong_password);
 		return;
 	}
-	login_form.classList.add('d-none');
-	const station = station_list.filter(station => station.id === parseInt(station_select.value))[0];
-	const password = password_input.value;
-	login_form.reset();
 	state = {
-		station: station,
-		password: password,
+		station: station_list.filter(station => station.id === parseInt(station_select.value))[0],
+		password: password_input.value,
+		deadline: result.deadline,
 		team_list: result.team_list,
 		player_list: result.player_list,
 		player: null,
 	};
-	localStorage.setItem('station', station.id.toString());
-	localStorage.setItem('password', password);
+	localStorage.setItem('station', state.station.id.toString());
+	localStorage.setItem('password', state.password);
 	keyboard_search();
-	station_heading.innerHTML = state.station.name;
-	main_div.classList.remove('d-none');
+	refresh();
 });
 
 // main
@@ -91,14 +111,16 @@ const station_heading = document.getElementById('station-heading');
 const logout_button = document.getElementById('logout-button');
 logout_button.innerHTML = lexicon.logout;
 logout_button.addEventListener('click', () => {
-	main_div.classList.add('d-none');
-	station_heading.innerHTML = '';
+	state = null;
 	localStorage.removeItem('station');
 	localStorage.removeItem('password');
-	keyboard_search();
-	state = null;
-	login_form.classList.remove('d-none');
+	refresh();
 });
+
+/**
+ * @type {HTMLDivElement}
+ */
+const deadline_div = document.getElementById('deadline-div');
 
 /**
  * @type {HTMLDivElement}
@@ -232,11 +254,11 @@ function station_read() {
 	state = {
 		station: station,
 		password: password,
+		deadline: result.deadline,
 		team_list: result.team_list,
 		player_list: result.player_list,
 		player: null,
 	};
-	station_heading.innerHTML = state.station.name;
 	keyboard_search();
-	main_div.classList.remove('d-none');
+	refresh();
 })();

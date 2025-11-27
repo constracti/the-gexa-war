@@ -114,6 +114,8 @@ config_form.addEventListener('submit', async event => {
 	console.log(result);
 });
 
+// TODO show stations with passwords
+
 // init
 
 (async () => {
@@ -128,15 +130,13 @@ config_form.addEventListener('submit', async event => {
 	 * @type {AdminLogin}
 	 */
 	const result = await api.post('admin_login', formData);
-	if (result === null) {
-		login_form.classList.remove('d-none');
-		return;
+	if (result !== null) {
+		state = {
+			password: password,
+			deadline: result.deadline,
+			reward_success: result.reward_success,
+			reward_conquest: result.reward_conquest,
+		};
 	}
-	state = {
-		password: password,
-		deadline: result.deadline,
-		reward_success: result.reward_success,
-		reward_conquest: result.reward_conquest,
-	};
 	refresh();
 })();
