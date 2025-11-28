@@ -26,19 +26,10 @@ const station_list = await (async () => {
 let state = null;
 
 function refresh() {
-	deadline_div.classList.remove('alert-info', 'alert-warning', 'alert-danger');
 	if (state !== null) {
 		login_form.classList.add('d-none');
 		login_form.reset();
 		station_heading.innerHTML = state.station.name;
-		const deadline_minutes = (Date.parse(state.deadline) - Date.now()) / 60000; // TODO check every second
-		if (deadline_minutes < 0)
-			deadline_div.classList.add('alert-danger');
-		else if (deadline_minutes < 10)
-			deadline_div.classList.add('alert-warning');
-		else
-			deadline_div.classList.add('alert-info');
-		deadline_div.classList.add('alert-info');
 		deadline_div.innerHTML = `${lexicon.deadline}: ${state.deadline.split(' ')[1]}`;
 		main_div.classList.remove('d-none');
 	} else {
@@ -79,7 +70,7 @@ login_form.addEventListener('submit', async event => {
 	 */
 	const result = await api.post('station_login', new FormData(login_form));
 	if (result === null) {
-		alert(lexicon.wrong_password);
+		alert(lexicon.password_wrong);
 		return;
 	}
 	state = {
@@ -210,10 +201,14 @@ keyboard_success_array.forEach(button => {
 		formData.append('type', button.dataset.success);
 		formData.append('player', state.player.id);
 		/**
-		 * @type {null}
+		 * @type {{deadline: string, success: boolean}}
 		 */
 		const result = await api.post('player_success', formData);
+		if (!result.success)
+			alert(lexicon.deadline_expired);
+		state.deadline = result.deadline;
 		keyboard_search();
+		refresh();
 	});
 });
 

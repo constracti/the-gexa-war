@@ -45,7 +45,7 @@ function config_set_int(string $name, int $value): void {
 }
 
 function config_get_deadline(): DT {
-	$deadline = config_get_int('deadline', time());
+	$deadline = config_get_int('deadline', 0);
 	return DT::from_int($deadline);
 }
 
@@ -235,7 +235,6 @@ if (is_post('station_login')) {
 }
 
 if (is_post('player_success')) {
-	// TODO check deadline
 	$station = post_int('station');
 	$password = post_string('password');
 	if (!station_matches($station, $password))
@@ -246,8 +245,19 @@ if (is_post('player_success')) {
 	$player = post_string('player');
 	if (!player_exists($player))
 		exit('player');
+	$deadline = config_get_deadline();
+	$now = DT::from_int(time());
+	if ($now->dt > $deadline->dt) {
+		json([
+			'deadline' => $deadline->to_sql(),
+			'success' => FALSE,
+		]);
+	}
 	success_insert($station, $player, $type);
-	json(NULL); // TODO return deadline
+	json([
+		'deadline' => $deadline->to_sql(),
+		'success' => TRUE,
+	]);
 }
 
 if (is_get('game')) {
@@ -258,7 +268,7 @@ if (is_get('game')) {
 	]);
 }
 
-if (is_get('player_points')) {
+if (is_get('player_points')) { // TODO limit to admin
 	json([
 		'team_list' => team_all(),
 		'player_list' => player_points(),

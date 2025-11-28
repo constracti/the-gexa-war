@@ -46,7 +46,7 @@ login_form.addEventListener('submit', async event => {
 	 */
 	const result = await api.post('admin_login', new FormData(login_form));
 	if (result === null) {
-		alert(lexicon.wrong_password);
+		alert(lexicon.password_wrong);
 		return;
 	}
 	state = {

@@ -6,7 +6,7 @@ class DT {
 	private const string SQL = 'Y-m-d H:i:s';
 	private const string JS = 'Y-m-d\TH:i';
 
-	private DateTimeImmutable $dt;
+	public DateTimeImmutable $dt;
 
 	private static function timezone(): DateTimeZone {
 		return new DateTimeZone(TIMEZONE);
