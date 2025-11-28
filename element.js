@@ -3,7 +3,13 @@
  * @param {?string} options.tag
  * @param {?string} options.class
  * @param {?string} options.value
+ * @param {?boolean} options.disabled
+ * @param {?string} options.name
+ * @param {?string} options.placeholder
+ * @param {?boolean} options.required
+ * @param {?string} options.type
  * @param {?{() => void}} options.click
+ * @param {?{(event: Event) => void}} options.submit
  * @param {?(string|HTMLElement[])} options.content
  * @returns {HTMLElement}
  */
@@ -14,26 +20,53 @@ export function n(options) {
 		options.class = null;
 	if (options.value === undefined)
 		options.value = null;
+	if (options.disabled === undefined)
+		options.disabled = null;
+	if (options.name === undefined)
+		options.name = null;
+	if (options.placeholder === undefined)
+		options.placeholder = null;
+	if (options.required === undefined)
+		options.required = null;
+	if (options.type === undefined)
+		options.type = null;
 	if (options.click === undefined)
 		options.click = null;
+	if (options.submit === undefined)
+		options.submit = null;
 	if (options.content === undefined)
 		options.content = null;
 	const element = document.createElement(options.tag);
 	if (options.class !== null)
 		element.className = options.class;
-	if (options.value !== null)
-		element.value = options.value;
-	if (options.click !== null) {
-		element.addEventListener('click', () => {
-			options.click();
-		});
-	}
 	if (options.content === null) {
 	} else if (typeof(options.content) === 'string') {
 		element.innerHTML = options.content;
 	} else {
 		for (const child of options.content)
 			element.appendChild(child);
+	}
+	if (options.value !== null)
+		element.value = options.value;
+	if (options.disabled !== null)
+		element.disabled = options.disabled;
+	if (options.name !== null)
+		element.name = options.name;
+	if (options.placeholder !== null)
+		element.placeholder = options.placeholder;
+	if (options.required !== null)
+		element.required = options.required;
+	if (options.type !== null)
+		element.type = options.type;
+	if (options.click !== null) {
+		element.addEventListener('click', () => {
+			options.click();
+		});
+	}
+	if (options.submit !== null) {
+		element.addEventListener('submit', event => {
+			options.submit(event);
+		});
 	}
 	return element;
 }

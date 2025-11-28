@@ -104,6 +104,18 @@ function team_all(): array {
 	return $list;
 }
 
+function team_exists(int $id): bool {
+	global $db;
+	$stmt = $db->prepare('SELECT `id` FROM `team` WHERE `id` = ?');
+	$stmt->bind_param('i', $id);
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$item = $rslt->fetch_assoc();
+	$rslt->free();
+	$stmt->close();
+	return !is_null($item);
+}
+
 function team_players(int $id): ?int {
 	global $db;
 	$stmt = $db->prepare('SELECT COUNT(`id`) AS `players` FROM `player` WHERE `team` = ?');
@@ -143,6 +155,8 @@ function team_delete(int $id): void {
 }
 
 // player
+
+// TODO player active?
 
 function player_all(): array {
 	global $db;
@@ -184,6 +198,30 @@ function player_points(): array {
 	$rslt->free();
 	$stmt->close();
 	return $list;
+}
+
+function player_insert(string $id, string $name, int $team): void {
+	global $db;
+	$stmt = $db->prepare('INSERT INTO `player` (`id`, `name`, `team`) VALUES (?, ?, ?)');
+	$stmt->bind_param('ssi', $id, $name, $team);
+	$stmt->execute();
+	$stmt->close();
+}
+
+function player_update(string $player, string $id, string $name, int $team): void {
+	global $db;
+	$stmt = $db->prepare('UPDATE `player` SET `id` = ?, `name` = ?, `team` = ? WHERE `id` = ?');
+	$stmt->bind_param('ssis', $id, $name, $team, $player);
+	$stmt->execute();
+	$stmt->close();
+}
+
+function player_delete(string $id): void {
+	global $db;
+	$stmt = $db->prepare('DELETE FROM `player` WHERE `id` = ?');
+	$stmt->bind_param('s', $id);
+	$stmt->execute();
+	$stmt->close();
 }
 
 // success
@@ -286,6 +324,8 @@ if (is_post('team_update')) {
 	if ($password !== ADMIN_PASS)
 		exit('password');
 	$id = post_int('id');
+	if (!team_exists($id))
+		exit('team');
 	$name = post_string('name');
 	team_update($id, $name);
 	json([
@@ -298,10 +338,63 @@ if (is_post('team_delete')) {
 	if ($password !== ADMIN_PASS)
 		exit('password');
 	$id = post_int('id');
-	if (team_players($id) === 0)
-		team_delete($id);
+	if (!team_exists($id))
+		exit('team');
+	if (team_players($id) !== 0)
+		exit('team');
+	team_delete($id);
 	json([
 		'team_list' => team_all(),
+	]);
+}
+
+if (is_post('player_insert')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$id = post_string('id');
+	if (player_exists($id))
+		json(NULL);
+	$name = post_string('name');
+	$team = post_int('team');
+	if (!team_exists($team))
+		exit('team');
+	player_insert($id, $name, $team);
+	json([
+		'player_list' => player_all(),
+	]);
+}
+
+if (is_post('player_update')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$player = post_string('player');
+	if (!player_exists($player))
+		exit('player');
+	$id = post_string('id');
+	if ($id !== $player && player_exists($id))
+		json(NULL);
+	$name = post_string('name');
+	$team = post_int('team');
+	if (!team_exists($team))
+		exit('team');
+	player_update($player, $id, $name, $team);
+	json([
+		'player_list' => player_all(),
+	]);
+}
+
+if (is_post('player_delete')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$id = post_string('id');
+	if (!player_exists($id))
+		exit('id');
+	player_delete($id);
+	json([
+		'player_list' => player_all(),
 	]);
 }
 
