@@ -51,9 +51,22 @@ function config_get_deadline(): DT {
 
 // station
 
-function station_all(): array {
+function station_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$list = [];
+	while (!is_null($item = $rslt->fetch_assoc()))
+		$list[] = $item;
+	$rslt->free();
+	$stmt->close();
+	return $list;
+}
+
+function station_secret_list(): array {
+	global $db;
+	$stmt = $db->prepare('SELECT `id`, `name`, `code` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	$stmt->execute();
 	$rslt = $stmt->get_result();
 	$list = [];
@@ -89,6 +102,44 @@ function team_all(): array {
 	$rslt->free();
 	$stmt->close();
 	return $list;
+}
+
+function team_players(int $id): ?int {
+	global $db;
+	$stmt = $db->prepare('SELECT COUNT(`id`) AS `players` FROM `player` WHERE `team` = ?');
+	$stmt->bind_param('i', $id);
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$item = $rslt->fetch_assoc();
+	$rslt->free();
+	$stmt->close();
+	if (is_null($item))
+		return NULL;
+	return $item['players'];
+}
+
+function team_insert(string $name): void {
+	global $db;
+	$stmt = $db->prepare('INSERT INTO `team` (`name`) VALUES (?)');
+	$stmt->bind_param('s', $name);
+	$stmt->execute();
+	$stmt->close();
+}
+
+function team_update(int $id, string $name): void {
+	global $db;
+	$stmt = $db->prepare('UPDATE `team` SET `name` = ? WHERE `id` = ?');
+	$stmt->bind_param('si', $name, $id);
+	$stmt->execute();
+	$stmt->close();
+}
+
+function team_delete(int $id): void {
+	global $db;
+	$stmt = $db->prepare('DELETE FROM `team` WHERE `id` = ?');
+	$stmt->bind_param('i', $id);
+	$stmt->execute();
+	$stmt->close();
 }
 
 // player
@@ -199,6 +250,9 @@ if (is_post('admin_login')) {
 		'deadline' => config_get_deadline()->to_js(),
 		'reward_success' => config_get_int('reward_success', 1),
 		'reward_conquest' => config_get_int('reward_conquest', 1),
+		'station_list'=> station_secret_list(),
+		'team_list' => team_all(),
+		'player_list' => player_all(),
 	]);
 }
 
@@ -216,9 +270,44 @@ if (is_post('admin_config')) {
 	json(NULL);
 }
 
+if (is_post('team_insert')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$name = post_string('name');
+	team_insert($name);
+	json([
+		'team_list' => team_all(),
+	]);
+}
+
+if (is_post('team_update')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$id = post_int('id');
+	$name = post_string('name');
+	team_update($id, $name);
+	json([
+		'team_list' => team_all(),
+	]);
+}
+
+if (is_post('team_delete')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$id = post_int('id');
+	if (team_players($id) === 0)
+		team_delete($id);
+	json([
+		'team_list' => team_all(),
+	]);
+}
+
 if (is_get('station_list')) {
 	json([
-		'station_list' => station_all(),
+		'station_list' => station_list(),
 	]);
 }
 
@@ -262,7 +351,7 @@ if (is_post('player_success')) {
 
 if (is_get('game')) {
 	json([
-		'station_list' => station_all(),
+		'station_list' => station_list(),
 		'team_list' => team_all(),
 		'player_list' => player_all(),
 	]);

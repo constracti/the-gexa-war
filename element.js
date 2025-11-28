@@ -3,6 +3,7 @@
  * @param {?string} options.tag
  * @param {?string} options.class
  * @param {?string} options.value
+ * @param {?{() => void}} options.click
  * @param {?(string|HTMLElement[])} options.content
  * @returns {HTMLElement}
  */
@@ -13,6 +14,8 @@ export function n(options) {
 		options.class = null;
 	if (options.value === undefined)
 		options.value = null;
+	if (options.click === undefined)
+		options.click = null;
 	if (options.content === undefined)
 		options.content = null;
 	const element = document.createElement(options.tag);
@@ -20,6 +23,11 @@ export function n(options) {
 		element.className = options.class;
 	if (options.value !== null)
 		element.value = options.value;
+	if (options.click !== null) {
+		element.addEventListener('click', () => {
+			options.click();
+		});
+	}
 	if (options.content === null) {
 	} else if (typeof(options.content) === 'string') {
 		element.innerHTML = options.content;
