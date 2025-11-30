@@ -16,6 +16,10 @@ class DT {
 		$this->dt = $dt;
 	}
 
+	static function from_now(): DT {
+		return DT::from_int(time());
+	}
+
 	static function from_int(int $int): DT {
 		$dt = new DateTime();
 		$dt->setTimestamp($int);
@@ -26,8 +30,15 @@ class DT {
 
 	static function from_js(string $js): DT {
 		$dt = DateTimeImmutable::createFromFormat(DT::JS, $js, DT::timezone());
-        if ($dt === FALSE)
-            exit('DT::from_js');
+		if ($dt === FALSE)
+			exit('DT::from_js');
+		return new DT($dt);
+	}
+
+	static function from_sql(string $sql): DT {
+		$dt = DateTimeImmutable::createFromFormat(DT::SQL, $sql, DT::timezone());
+		if ($dt === FALSE)
+			exit('DT::from_sql');
 		return new DT($dt);
 	}
 

@@ -49,6 +49,16 @@ function config_get_deadline(): DT {
 	return DT::from_int($deadline);
 }
 
+function config_get_reward_success(): int {
+	return config_get_int('reward_success', 1);
+}
+
+function config_get_reward_conquest(): int {
+	return config_get_int('reward_conquest', 1);
+}
+
+// TODO score accelaration?
+
 // station
 
 function station_list(): array {
@@ -89,11 +99,34 @@ function station_matches(int $id, string $code): bool {
 	return !is_null($item);
 }
 
+// TODO initial station team?
+
 // team
+
+// TODO team color?
 
 function team_all(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name` FROM `team` ORDER BY `name` ASC, `id` ASC');
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$list = [];
+	while (!is_null($item = $rslt->fetch_assoc()))
+		$list[] = $item;
+	$rslt->free();
+	$stmt->close();
+	return $list;
+}
+
+function team_with_players_list(): array {
+	global $db;
+	$stmt = $db->prepare('
+	SELECT `team`.`id`, `team`.`name`, COUNT(`player`.`id`) AS `players`
+	FROM `team`
+	LEFT JOIN `player` ON `player`.`team` = `team`.`id`
+	GROUP BY `team`.`id`, `team`.`name`
+	ORDER BY `team`.`name` ASC, `team`.`id` ASC
+	');
 	$stmt->execute();
 	$rslt = $stmt->get_result();
 	$list = [];
@@ -226,13 +259,30 @@ function player_delete(string $id): void {
 
 // success
 
-function success_insert(int $station, string $player, string $type): void {
-	$dt = new DateTimeImmutable();
-	$dt = new DT($dt);
-	$dt = $dt->to_sql();
+function success_with_team_list(): array {
+	global $db;
+	$stmt = $db->prepare('
+	SELECT `success`.`id`, `success`.`station`, `player`.`team`, `success`.`type`, `success`.`dt` AS `timestamp`
+	FROM `success`
+	LEFT JOIN `player` ON `player`.`id` = `success`.`player`
+	ORDER BY `timestamp` ASC, `success`.`id` ASC
+	');
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$list = [];
+	while (!is_null($item = $rslt->fetch_assoc())) {
+		$item['timestamp'] = DT::from_sql($item['timestamp'])->to_int();
+		$list[] = $item;
+	}
+	$rslt->free();
+	$stmt->close();
+	return $list;
+}
+
+function success_insert(int $station, string $player, string $type, DT $dt): void {
 	global $db;
 	$stmt = $db->prepare('INSERT INTO `success` (`station`, `player`, `type`, `dt`) VALUES (?, ?, ?, ?)');
-	$stmt->bind_param('isss', $station, $player, $type, $dt);
+	$stmt->bind_param('isss', $station, $player, $type, $dt->to_sql());
 	$stmt->execute();
 	$stmt->close();
 }
@@ -286,8 +336,8 @@ if (is_post('admin_login')) {
 		json(NULL);
 	json([
 		'deadline' => config_get_deadline()->to_js(),
-		'reward_success' => config_get_int('reward_success', 1),
-		'reward_conquest' => config_get_int('reward_conquest', 1),
+		'reward_success' => config_get_reward_success(),
+		'reward_conquest' => config_get_reward_conquest(),
 		'station_list'=> station_secret_list(),
 		'team_list' => team_all(),
 		'player_list' => player_all(),
@@ -428,14 +478,14 @@ if (is_post('player_success')) {
 	if (!player_exists($player))
 		exit('player');
 	$deadline = config_get_deadline();
-	$now = DT::from_int(time());
-	if ($now->dt > $deadline->dt) {
+	$now = DT::from_now();
+	if ($now->dt >= $deadline->dt) {
 		json([
 			'deadline' => $deadline->to_sql(),
 			'success' => FALSE,
 		]);
 	}
-	success_insert($station, $player, $type);
+	success_insert($station, $player, $type, $now);
 	json([
 		'deadline' => $deadline->to_sql(),
 		'success' => TRUE,
@@ -443,10 +493,17 @@ if (is_post('player_success')) {
 }
 
 if (is_get('game')) {
+	$deadline = config_get_deadline();
+	$now = DT::from_now();
 	json([
+		'deadline' => $deadline->to_sql(),
+		'present' => $now->dt < $deadline->dt ? $now->to_int() : $deadline->to_int(),
+		'expired' => $now->dt >= $deadline->dt,
+		'reward_success' => config_get_reward_success(),
+		'reward_conquest' => config_get_reward_conquest(),
 		'station_list' => station_list(),
-		'team_list' => team_all(),
-		'player_list' => player_all(),
+		'team_list' => team_with_players_list(),
+		'success_list' => success_with_team_list(),
 	]);
 }
 
@@ -456,3 +513,5 @@ if (is_get('player_points')) { // TODO limit to admin
 		'player_list' => player_points(),
 	]);
 }
+
+// TODO draw winners page
