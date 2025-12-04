@@ -1,19 +1,37 @@
-import { api } from './common.js';
+import { api, textColor } from './common.js';
 import { n, n_option_list } from './element.js';
 import { lexicon } from './lexicon.js';
 
 /**
- * @typedef {{id: number, name: string, code: string}} StationSecret
- * @typedef {import('./common.js').Team} Team
- * @typedef {import('./common.js').Player} Player
+ * @typedef Station
+ * @type {object}
+ * @property {number} id
+ * @property {string} name
+ * @property {string} code
  */
 
 /**
- * @typedef {{deadline: string, reward_success: number, reward_conquest: number, station_list: StationSecret[], team_list: Team[], player_list: Player[]}|null} AdminLogin
+ * @typedef Team
+ * @type {object}
+ * @property {number} id
+ * @property {string} name
+ * @property {string} color
  */
 
 /**
- * @type {?{password: string, deadline: string, reward_success: number, reward_conquest: number, station_list: StationSecret[], team_list: Team[], player_list: Player[]}}
+ * @typedef Player
+ * @type {object}
+ * @property {string} id
+ * @property {string} name
+ * @property {number} team
+ */
+
+/**
+ * @typedef {{deadline: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}|null} AdminLogin
+ */
+
+/**
+ * @type {?{password: string, deadline: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}}
  */
 let state = null;
 
@@ -145,7 +163,7 @@ config_form.addEventListener('submit', async event => {
 	 * @type {null}
 	 */
 	const result = await api.post('admin_config', formData);
-	console.log(result);
+	console.log(result); // TODO delete
 });
 
 document.getElementById('station-heading').innerHTML = lexicon.station_list;
@@ -198,12 +216,16 @@ function team_render() {
 		const player_count = state.player_list.filter(player => player.team === team.id).length;
 		const element_list = [
 			// row text
-				n({
+			n({
 				class: 'flex-grow-1 m-1',
 				content: team.name,
 			}),
 			n({
-				class: 'badge text-bg-info m-1',
+				class: 'badge border m-1',
+				style: {
+					backgroundColor: team.color,
+					color: textColor(team.color),
+				},
 				content: player_count.toString(),
 			}),
 			n({
@@ -266,6 +288,19 @@ function team_render() {
 								name: 'name',
 								placeholder: lexicon.name,
 								required: true,
+							}),
+						],
+					}),
+					n({
+						class: 'm-1',
+						content: [
+							n({
+								tag: 'input',
+								class: 'form-control form-control-sm form-control-color',
+								value: team.color,
+								name: 'color',
+								required: true,
+								type: 'color',
 							}),
 						],
 					}),
@@ -338,6 +373,18 @@ function team_render() {
 								name: 'name',
 								placeholder: lexicon.name,
 								required: true,
+							}),
+						],
+					}),
+					n({
+						class: 'm-1',
+						content: [
+							n({
+								tag: 'input',
+								class: 'form-control form-control-sm form-control-color',
+								name: 'color',
+								required: true,
+								type: 'color',
 							}),
 						],
 					}),

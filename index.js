@@ -1,4 +1,4 @@
-import { api } from './common.js';
+import { api, textColor } from './common.js';
 import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
@@ -14,6 +14,7 @@ import { lexicon } from './lexicon.js';
  * @type {object}
  * @property {number} id
  * @property {string} name
+ * @property {string} color
  * @property {number} players
  */
 
@@ -137,7 +138,11 @@ async function refresh() {
 					content: team.name,
 				}),
 				n({
-					class: 'badge text-bg-secondary m-1',
+					class: 'badge m-1',
+					style: {
+						backgroundColor: team.color,
+						color: textColor(team.color),
+					},
 					content: `${team_score_dict[team.id].toFixed(0)}`,
 				}),
 			],

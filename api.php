@@ -74,7 +74,7 @@ function station_list(): array {
 	return $list;
 }
 
-function station_secret_list(): array {
+function station_with_code_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name`, `code` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	$stmt->execute();
@@ -103,9 +103,20 @@ function station_matches(int $id, string $code): bool {
 
 // team
 
-// TODO team color?
+function team_list(): array {
+	global $db;
+	$stmt = $db->prepare('SELECT `id`, `name`, `color` FROM `team` ORDER BY `name` ASC, `id` ASC');
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$list = [];
+	while (!is_null($item = $rslt->fetch_assoc()))
+		$list[] = $item;
+	$rslt->free();
+	$stmt->close();
+	return $list;
+}
 
-function team_all(): array {
+function team_name_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name` FROM `team` ORDER BY `name` ASC, `id` ASC');
 	$stmt->execute();
@@ -121,7 +132,7 @@ function team_all(): array {
 function team_with_players_list(): array {
 	global $db;
 	$stmt = $db->prepare('
-	SELECT `team`.`id`, `team`.`name`, COUNT(`player`.`id`) AS `players`
+	SELECT `team`.`id`, `team`.`name`, `team`.`color`, COUNT(`player`.`id`) AS `players`
 	FROM `team`
 	LEFT JOIN `player` ON `player`.`team` = `team`.`id`
 	GROUP BY `team`.`id`, `team`.`name`
@@ -163,18 +174,18 @@ function team_players(int $id): ?int {
 	return $item['players'];
 }
 
-function team_insert(string $name): void {
+function team_insert(string $name, string $color): void {
 	global $db;
-	$stmt = $db->prepare('INSERT INTO `team` (`name`) VALUES (?)');
-	$stmt->bind_param('s', $name);
+	$stmt = $db->prepare('INSERT INTO `team` (`name`, `color`) VALUES (?, ?)');
+	$stmt->bind_param('ss', $name, $color);
 	$stmt->execute();
 	$stmt->close();
 }
 
-function team_update(int $id, string $name): void {
+function team_update(int $id, string $name, string $color): void {
 	global $db;
-	$stmt = $db->prepare('UPDATE `team` SET `name` = ? WHERE `id` = ?');
-	$stmt->bind_param('si', $name, $id);
+	$stmt = $db->prepare('UPDATE `team` SET `name` = ?, `color` = ? WHERE `id` = ?');
+	$stmt->bind_param('ssi', $name, $color, $id);
 	$stmt->execute();
 	$stmt->close();
 }
@@ -191,7 +202,7 @@ function team_delete(int $id): void {
 
 // TODO player active?
 
-function player_all(): array {
+function player_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name`, `team` FROM `player` ORDER BY `name` ASC, `id` ASC');
 	$stmt->execute();
@@ -338,9 +349,9 @@ if (is_post('admin_login')) {
 		'deadline' => config_get_deadline()->to_js(),
 		'reward_success' => config_get_reward_success(),
 		'reward_conquest' => config_get_reward_conquest(),
-		'station_list'=> station_secret_list(),
-		'team_list' => team_all(),
-		'player_list' => player_all(),
+		'station_list'=> station_with_code_list(),
+		'team_list' => team_list(),
+		'player_list' => player_list(),
 	]);
 }
 
@@ -363,9 +374,10 @@ if (is_post('team_insert')) {
 	if ($password !== ADMIN_PASS)
 		exit('password');
 	$name = post_string('name');
-	team_insert($name);
+	$color = post_string('color');
+	team_insert($name, $color);
 	json([
-		'team_list' => team_all(),
+		'team_list' => team_list(),
 	]);
 }
 
@@ -377,9 +389,10 @@ if (is_post('team_update')) {
 	if (!team_exists($id))
 		exit('team');
 	$name = post_string('name');
-	team_update($id, $name);
+	$color = post_string('color');
+	team_update($id, $name, $color);
 	json([
-		'team_list' => team_all(),
+		'team_list' => team_list(),
 	]);
 }
 
@@ -394,7 +407,7 @@ if (is_post('team_delete')) {
 		exit('team');
 	team_delete($id);
 	json([
-		'team_list' => team_all(),
+		'team_list' => team_list(),
 	]);
 }
 
@@ -411,7 +424,7 @@ if (is_post('player_insert')) {
 		exit('team');
 	player_insert($id, $name, $team);
 	json([
-		'player_list' => player_all(),
+		'player_list' => player_list(),
 	]);
 }
 
@@ -431,7 +444,7 @@ if (is_post('player_update')) {
 		exit('team');
 	player_update($player, $id, $name, $team);
 	json([
-		'player_list' => player_all(),
+		'player_list' => player_list(),
 	]);
 }
 
@@ -444,7 +457,7 @@ if (is_post('player_delete')) {
 		exit('id');
 	player_delete($id);
 	json([
-		'player_list' => player_all(),
+		'player_list' => player_list(),
 	]);
 }
 
@@ -461,8 +474,8 @@ if (is_post('station_login')) {
 		json(NULL);
 	json([
 		'deadline' => config_get_deadline()->to_sql(),
-		'team_list' => team_all(),
-		'player_list' => player_all(),
+		'team_list' => team_name_list(),
+		'player_list' => player_list(),
 	]);
 }
 
@@ -509,7 +522,7 @@ if (is_get('game')) {
 
 if (is_get('player_points')) { // TODO limit to admin
 	json([
-		'team_list' => team_all(),
+		'team_list' => team_name_list(),
 		'player_list' => player_points(),
 	]);
 }

@@ -3,9 +3,25 @@ import { n_option_list } from './element.js';
 import { lexicon } from './lexicon.js';
 
 /**
- * @typedef {import('./common.js').Station} Station
- * @typedef {import('./common.js').Team} Team
- * @typedef {import('./common.js').Player} Player
+ * @typedef Station
+ * @type {object}
+ * @property {number} id
+ * @property {string} name
+ */
+
+/**
+ * @typedef Team
+ * @type {object}
+ * @property {number} id
+ * @property {string} name
+ */
+
+/**
+ * @typedef Player
+ * @type {object}
+ * @property {string} id
+ * @property {string} name
+ * @property {number} team
  */
 
 const station_list = await (async () => {

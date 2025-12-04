@@ -7,6 +7,7 @@
  * @param {?string} options.name
  * @param {?string} options.placeholder
  * @param {?boolean} options.required
+ * @param {?{[k: string]: string}} options.style
  * @param {?string} options.type
  * @param {?{() => void}} options.click
  * @param {?{(event: Event) => void}} options.submit
@@ -28,6 +29,8 @@ export function n(options) {
 		options.placeholder = null;
 	if (options.required === undefined)
 		options.required = null;
+	if (options.style === undefined)
+		options.style = null;
 	if (options.type === undefined)
 		options.type = null;
 	if (options.click === undefined)
@@ -56,6 +59,11 @@ export function n(options) {
 		element.placeholder = options.placeholder;
 	if (options.required !== null)
 		element.required = options.required;
+	if (options.style !== null) {
+		Object.entries(options.style).forEach(entry => {
+			element.style[entry[0]] = entry[1];
+		});
+	}
 	if (options.type !== null)
 		element.type = options.type;
 	if (options.click !== null) {
