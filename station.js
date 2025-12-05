@@ -33,11 +33,11 @@ const station_list = await (async () => {
 })();
 
 /**
- * @typedef {{deadline: string, team_list: Team[], player_list: Player[]}|null} StationLogin
+ * @typedef {{game_start: string, game_stop: string, team_list: Team[], player_list: Player[]}|null} StationLogin
  */
 
 /**
- * @type {?{station: Station, password: string, deadline: string, team_list: Team[], player_list: Player[], player: ?Player}}
+ * @type {{station: Station, password: string, game_start: string, game_stop: string, team_list: Team[], player_list: Player[], player: ?Player}|null}
  */
 let state = null;
 
@@ -46,12 +46,12 @@ function refresh() {
 		login_form.classList.add('d-none');
 		login_form.reset();
 		station_heading.innerHTML = state.station.name;
-		deadline_div.innerHTML = `${lexicon.deadline}: ${state.deadline.split(' ')[1]}`;
+		game_state_div.innerHTML = `${lexicon.game_start}: ${state.game_start.split(' ')[1]}<br>${lexicon.game_stop}: ${state.game_stop.split(' ')[1]}`;
 		main_div.classList.remove('d-none');
 	} else {
 		main_div.classList.add('d-none');
 		station_heading.innerHTML = '';
-		deadline_div.innerHTML = '';
+		game_state_div.innerHTML = '';
 		login_form.classList.remove('d-none');
 	}
 }
@@ -92,7 +92,8 @@ login_form.addEventListener('submit', async event => {
 	state = {
 		station: station_list.filter(station => station.id === parseInt(station_select.value))[0],
 		password: password_input.value,
-		deadline: result.deadline,
+		game_start: result.game_start,
+		game_stop: result.game_stop,
 		team_list: result.team_list,
 		player_list: result.player_list,
 		player: null,
@@ -127,7 +128,7 @@ logout_button.addEventListener('click', () => {
 /**
  * @type {HTMLDivElement}
  */
-const deadline_div = document.getElementById('deadline-div');
+const game_state_div = document.getElementById('game-state-div');
 
 /**
  * @type {HTMLDivElement}
@@ -217,12 +218,15 @@ keyboard_success_array.forEach(button => {
 		formData.append('type', button.dataset.success);
 		formData.append('player', state.player.id);
 		/**
-		 * @type {{deadline: string, success: boolean}}
+		 * @type {{game_start: string, game_stop: string, game_state: string}}
 		 */
 		const result = await api.post('player_success', formData);
-		if (!result.success)
-			alert(lexicon.deadline_expired);
-		state.deadline = result.deadline;
+		if (result.game_state === 'pending')
+			alert(lexicon.game_pending);
+		else if (result.game_state === 'finished')
+			alert(lexicon.game_finished);
+		state.game_start = result.game_start;
+		state.game_stop = result.game_stop;
 		keyboard_search();
 		refresh();
 	});
@@ -265,7 +269,8 @@ function station_read() {
 	state = {
 		station: station,
 		password: password,
-		deadline: result.deadline,
+		game_start: result.game_start,
+		game_stop: result.game_stop,
 		team_list: result.team_list,
 		player_list: result.player_list,
 		player: null,

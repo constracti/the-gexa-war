@@ -27,11 +27,11 @@ import { lexicon } from './lexicon.js';
  */
 
 /**
- * @typedef {{deadline: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}|null} AdminLogin
+ * @typedef {{game_start: string, game_stop: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}|null} AdminLogin
  */
 
 /**
- * @type {?{password: string, deadline: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}}
+ * @type {?{password: string, game_start: string, game_stop: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}}
  */
 let state = null;
 
@@ -39,7 +39,8 @@ function refresh() {
 	if (state !== null) {
 		login_form.classList.add('d-none');
 		login_form.reset();
-		deadline_input.value = state.deadline;
+		game_start_input.value = state.game_start;
+		game_stop_input.value = state.game_stop;
 		reward_success_input.value = state.reward_success.toString();
 		reward_conquest_input.value = state.reward_conquest.toString();
 		station_div.innerHTML = '';
@@ -100,7 +101,8 @@ login_form.addEventListener('submit', async event => {
 	}
 	state = {
 		password: password_input.value,
-		deadline: result.deadline,
+		game_start: result.game_start,
+		game_stop: result.game_stop,
 		reward_success: result.reward_success,
 		reward_conquest: result.reward_conquest,
 		station_list: result.station_list,
@@ -134,8 +136,14 @@ logout_button.addEventListener('click', () => {
 /**
  * @type {HTMLInputElement}
  */
-const deadline_input = document.getElementById('deadline-input');
-deadline_input.previousElementSibling.innerHTML = lexicon.deadline;
+const game_start_input = document.getElementById('game-start-input');
+game_start_input.previousElementSibling.innerHTML = lexicon.game_start;
+
+/**
+ * @type {HTMLInputElement}
+ */
+const game_stop_input = document.getElementById('game-stop-input');
+game_stop_input.previousElementSibling.innerHTML = lexicon.game_stop;
 
 /**
  * @type {HTMLInputElement}
@@ -703,7 +711,8 @@ function player_render() {
 	if (result !== null) {
 		state = {
 			password: password,
-			deadline: result.deadline,
+			game_start: result.game_start,
+			game_stop: result.game_stop,
 			reward_success: result.reward_success,
 			reward_conquest: result.reward_conquest,
 			station_list: result.station_list,

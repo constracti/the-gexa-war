@@ -31,9 +31,10 @@ import { lexicon } from './lexicon.js';
 /**
  * @typedef Game
  * @type {object}
- * @property {string} deadline
- * @property {number} present
- * @property {boolean} expired
+ * @property {string} game_start
+ * @property {string} game_stop
+ * @property {string} game_state
+ * @property {number} timestamp
  * @property {number} reward_success
  * @property {number} reward_conquest
  * @property {Station[]} station_list
@@ -73,9 +74,12 @@ async function refresh() {
 	const result = await api.get('game');
 	spinner_div.classList.add('d-none');
 	console.log(result); // TODO delete
-	alert_div.classList.remove('alert-info', 'alert-danger');
-	alert_div.classList.add(result.expired ? 'alert-danger' : 'alert-info');
-	alert_div.innerHTML = `${lexicon.deadline}: ${result.deadline.split(' ')[1]}`;
+	if (result.game_state === 'pending')
+		alert_div.innerHTML = `${lexicon.game_start}: ${result.game_start.split(' ')[1]}<br>${lexicon.game_pending}`;
+	else if (result.game_state === 'finished')
+		alert_div.innerHTML = `${lexicon.game_stop}: ${result.game_stop.split(' ')[1]}<br>${lexicon.game_finished}`;
+	else
+		alert_div.innerHTML = `${lexicon.game_stop}: ${result.game_stop.split(' ')[1]}`;
 	/**
 	 * @type {{[k: number]: Team}}
 	 */
@@ -124,7 +128,7 @@ async function refresh() {
 			],
 		}));
 		if (conquest !== null) {
-			team_score_dict[conquest.team] += (result.present - conquest.timestamp) * result.reward_conquest / 60;
+			team_score_dict[conquest.team] += (result.timestamp - conquest.timestamp) * result.reward_conquest / 60;
 			station_conquest_dict[station.id] = null;
 		}
 	});
@@ -148,7 +152,7 @@ async function refresh() {
 			],
 		}));
 	});
-	if (!result.expired)
+	if (result.game_state !== 'finished')
 		setTimeout(refresh, 10000); // TODO delay
 }
 

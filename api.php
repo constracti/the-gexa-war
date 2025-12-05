@@ -44,9 +44,14 @@ function config_set_int(string $name, int $value): void {
 	$stmt->close();
 }
 
-function config_get_deadline(): DT {
-	$deadline = config_get_int('deadline', 0);
-	return DT::from_int($deadline);
+function config_get_game_start(): DT {
+	$game_start = config_get_int('game_start', 0);
+	return DT::from_int($game_start);
+}
+
+function config_get_game_stop(): DT {
+	$game_stop = config_get_int('game_stop', 0);
+	return DT::from_int($game_stop);
 }
 
 function config_get_reward_success(): int {
@@ -57,7 +62,15 @@ function config_get_reward_conquest(): int {
 	return config_get_int('reward_conquest', 1);
 }
 
-// TODO score accelaration?
+function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
+	if ($now->dt < $game_start->dt)
+		return 'pending';
+	if ($now->dt >= $game_stop->dt)
+		return 'finished';
+	return 'running';
+}
+
+// TODO score accelaration
 
 // station
 
@@ -99,7 +112,7 @@ function station_matches(int $id, string $code): bool {
 	return !is_null($item);
 }
 
-// TODO initial station team?
+// TODO initial station team
 
 // team
 
@@ -270,7 +283,7 @@ function player_delete(string $id): void {
 
 // success
 
-function success_with_team_list(): array {
+function success_with_team_list(DT $game_start, DT $game_stop): array {
 	global $db;
 	$stmt = $db->prepare('
 	SELECT `success`.`id`, `success`.`station`, `player`.`team`, `success`.`type`, `success`.`dt` AS `timestamp`
@@ -282,7 +295,10 @@ function success_with_team_list(): array {
 	$rslt = $stmt->get_result();
 	$list = [];
 	while (!is_null($item = $rslt->fetch_assoc())) {
-		$item['timestamp'] = DT::from_sql($item['timestamp'])->to_int();
+		$timestamp = DT::from_sql($item['timestamp']);
+		if (get_game_state($timestamp, $game_start, $game_stop) !== 'running')
+			continue;
+		$item['timestamp'] = $timestamp->to_int();
 		$list[] = $item;
 	}
 	$rslt->free();
@@ -297,6 +313,10 @@ function success_insert(int $station, string $player, string $type, DT $dt): voi
 	$stmt->execute();
 	$stmt->close();
 }
+
+// TODO success delete
+
+// TODO success truncate
 
 // api
 
@@ -346,7 +366,8 @@ if (is_post('admin_login')) {
 	if ($password !== ADMIN_PASS)
 		json(NULL);
 	json([
-		'deadline' => config_get_deadline()->to_js(),
+		'game_start' => config_get_game_start()->to_js(),
+		'game_stop' => config_get_game_stop()->to_js(),
 		'reward_success' => config_get_reward_success(),
 		'reward_conquest' => config_get_reward_conquest(),
 		'station_list'=> station_with_code_list(),
@@ -359,11 +380,14 @@ if (is_post('admin_config')) {
 	$password = post_string('password');
 	if ($password !== ADMIN_PASS)
 		exit('password');
-	$deadline = post_string('deadline');
-	$deadline = DT::from_js($deadline);
+	$game_start = post_string('game_start');
+	$game_start = DT::from_js($game_start);
+	$game_stop = post_string('game_stop');
+	$game_stop = DT::from_js($game_stop);
 	$reward_success = post_int('reward_success');
 	$reward_conquest = post_int('reward_conquest');
-	config_set_int('deadline', $deadline->to_int());
+	config_set_int('game_start', $game_start->to_int());
+	config_set_int('game_stop', $game_stop->to_int());
 	config_set_int('reward_success', $reward_success);
 	config_set_int('reward_conquest', $reward_conquest);
 	json(NULL);
@@ -472,8 +496,12 @@ if (is_post('station_login')) {
 	$password = post_string('password');
 	if (!station_matches($station, $password))
 		json(NULL);
+	$game_start = config_get_game_start();
+	$game_stop = config_get_game_stop();
+	$now = DT::from_now();
 	json([
-		'deadline' => config_get_deadline()->to_sql(),
+		'game_start' => $game_start->to_sql(),
+		'game_stop' => $game_stop->to_sql(),
 		'team_list' => team_name_list(),
 		'player_list' => player_list(),
 	]);
@@ -490,33 +518,40 @@ if (is_post('player_success')) {
 	$player = post_string('player');
 	if (!player_exists($player))
 		exit('player');
-	$deadline = config_get_deadline();
+	$game_start = config_get_game_start();
+	$game_stop = config_get_game_stop();
 	$now = DT::from_now();
-	if ($now->dt >= $deadline->dt) {
-		json([
-			'deadline' => $deadline->to_sql(),
-			'success' => FALSE,
-		]);
-	}
-	success_insert($station, $player, $type, $now);
+	$game_state = get_game_state($now, $game_start, $game_stop);
+	if ($game_state === 'running')
+		success_insert($station, $player, $type, $now);
 	json([
-		'deadline' => $deadline->to_sql(),
-		'success' => TRUE,
+		'game_start' => $game_start->to_sql(),
+		'game_stop' => $game_stop->to_sql(),
+		'game_state' => $game_state,
 	]);
 }
 
 if (is_get('game')) {
-	$deadline = config_get_deadline();
+	$game_start = config_get_game_start();
+	$game_stop = config_get_game_stop();
 	$now = DT::from_now();
+	$game_state = get_game_state($now, $game_start, $game_stop);
+	if ($game_state === 'pending')
+		$timestamp = $game_start->to_int();
+	elseif ($game_state === 'finished')
+		$timestamp = $game_stop->to_int();
+	else
+		$timestamp = $now->to_int();
 	json([
-		'deadline' => $deadline->to_sql(),
-		'present' => $now->dt < $deadline->dt ? $now->to_int() : $deadline->to_int(),
-		'expired' => $now->dt >= $deadline->dt,
+		'game_start' => $game_start->to_sql(),
+		'game_stop' => $game_stop->to_sql(),
+		'game_state' => $game_state,
+		'timestamp' => $timestamp,
 		'reward_success' => config_get_reward_success(),
 		'reward_conquest' => config_get_reward_conquest(),
 		'station_list' => station_list(),
 		'team_list' => team_with_players_list(),
-		'success_list' => success_with_team_list(),
+		'success_list' => success_with_team_list($game_start, $game_stop),
 	]);
 }
 
