@@ -8,6 +8,7 @@ import { lexicon } from './lexicon.js';
  * @property {number} id
  * @property {string} name
  * @property {string} code
+ * @property {?number} team
  */
 
 /**
@@ -46,22 +47,7 @@ function refresh() {
 		reward_rate_input.value = state.reward_rate.toString();
 		reward_rate_refresh();
 		station_div.innerHTML = '';
-		state.station_list.forEach(station => {
-			station_div.appendChild(n({
-				class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
-				content: [
-					n({
-						class: 'm-1',
-						content: station.name,
-					}),
-					n({
-						tag: 'code',
-						class: 'm-1',
-						content: station.code,
-					}),
-				],
-			}));
-		});
+		station_render();
 		team_div.innerHTML = '';
 		team_render();
 		player_div.innerHTML = '';
@@ -222,6 +208,121 @@ station_button.addEventListener('click', () => {
  */
 const station_div = document.getElementById('station-div');
 
+function station_render() {
+	// row
+	state.station_list.forEach(station => {
+		const element_list = [
+			// row text
+			n({
+				class: 'flex-grow-1 m-1',
+				content: station.name,
+			}),
+			n({
+				tag: 'code',
+				class: 'm-1',
+				content: station.code,
+			}),
+			n({
+				class: 'badge text-bg-info m-1',
+				content: station.team !== null ? state.team_list.filter(team => team.id === station.team)[0].name : '-',
+			}),
+			n({
+				tag: 'button',
+				class: 'btn btn-secondary btn-sm m-1',
+				click: () => {
+					element_list.forEach(element => element.classList.toggle('d-none'));
+				},
+				content: lexicon.edit,
+			}),
+			// row form
+			n({
+				tag: 'form',
+				class: 'd-flex flex-row flex-wrap flex-grow-1 justify-content-end d-none',
+				submit: async event => {
+					event.preventDefault();
+					const formData = new FormData(event.currentTarget);
+					formData.append('password', state.password);
+					formData.append('id', station.id.toString());
+					/**
+					 * @type {{station_list: Station[]}}
+					 */
+					const result = await api.post('station_update', formData);
+					state.station_list = result.station_list;
+					refresh();
+				},
+				content: [
+					// row form fields
+					n({
+						class: 'flex-grow-1 m-1',
+						content: [
+							n({
+								tag: 'input',
+								class: 'form-control form-control-sm',
+								value: station.name,
+								name: 'name',
+								placeholder: lexicon.name,
+								required: true,
+							}),
+						],
+					}),
+					n({
+						class: 'flex-grow-1 m-1',
+						content: [
+							n({
+								tag: 'input',
+								class: 'form-control form-control-sm',
+								value: station.code,
+								name: 'code',
+								placeholder: lexicon.password,
+								required: true,
+							}),
+						],
+					}),
+					n({
+						class: 'flex-grow-1 m-1',
+						content: [
+							n({
+								tag: 'select',
+								class: 'form-select form-select-sm',
+								value: station.team?.toString(),
+								name: 'team',
+								content: n_option_list(state.team_list, `(${lexicon.team})`),
+							}),
+						],
+					}),
+					// row form buttons
+					n({
+						class: 'd-flex flex-row',
+						content: [
+							n({
+								tag: 'button',
+								class: 'btn btn-primary btn-sm m-1',
+								type: 'submit',
+								content: lexicon.submit,
+							}),
+							n({
+								tag: 'button',
+								class: 'btn btn-secondary btn-sm m-1',
+								type: 'button',
+								click: () => {
+									element_list.forEach(element => element.classList.toggle('d-none'));
+								},
+								content: lexicon.cancel,
+							}),
+						],
+					}),
+					// row form stop
+				],
+			}),
+			// row stop
+		];
+		station_div.appendChild(n({
+			class: 'list-group-item d-flex flex-row flex-wrap justify-content-end align-items-center p-1',
+			content: element_list,
+		}));
+	});
+}
+
 document.getElementById('team-heading').innerHTML = lexicon.team_list;
 
 /**
@@ -247,6 +348,7 @@ const team_div = document.getElementById('team-div');
 function team_render() {
 	// row
 	state.team_list.forEach(team => {
+		const station_count = state.station_list.filter(station => station.team === team.id).length;
 		const player_count = state.player_list.filter(player => player.team === team.id).length;
 		const element_list = [
 			// row text
@@ -260,7 +362,10 @@ function team_render() {
 					backgroundColor: team.color,
 					color: textColor(team.color),
 				},
-				content: player_count.toString(),
+				content: [
+					`${lexicon.station_list}: ${station_count}`,
+					`${lexicon.player_list}: ${player_count}`,
+				].join(' | '),
 			}),
 			n({
 				class: 'd-flex flex-row',
@@ -276,7 +381,7 @@ function team_render() {
 					n({
 						tag: 'button',
 						class: 'btn btn-danger btn-sm m-1',
-						disabled: player_count !== 0,
+						disabled: station_count !== 0 || player_count !== 0,
 						click: async () => {
 							if (!confirm(`${lexicon.delete} ${team.name}${lexicon.question_mark}`))
 								return;

@@ -78,7 +78,7 @@ function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
 
 function station_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `team` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	$stmt->execute();
 	$rslt = $stmt->get_result();
 	$list = [];
@@ -91,7 +91,7 @@ function station_list(): array {
 
 function station_with_code_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `code` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `team` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	$stmt->execute();
 	$rslt = $stmt->get_result();
 	$list = [];
@@ -100,6 +100,18 @@ function station_with_code_list(): array {
 	$rslt->free();
 	$stmt->close();
 	return $list;
+}
+
+function station_exists(int $id): bool {
+	global $db;
+	$stmt = $db->prepare('SELECT `id` FROM `station` WHERE `id` = ?');
+	$stmt->bind_param('i', $id);
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$item = $rslt->fetch_assoc();
+	$rslt->free();
+	$stmt->close();
+	return !is_null($item);
 }
 
 function station_matches(int $id, string $code): bool {
@@ -114,7 +126,13 @@ function station_matches(int $id, string $code): bool {
 	return !is_null($item);
 }
 
-// TODO initial station team
+function station_update(int $id, string $name, string $code, ?int $team): void {
+	global $db;
+	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `team` = ? WHERE `id` = ?');
+	$stmt->bind_param('ssii', $name, $code, $team, $id);
+	$stmt->execute();
+	$stmt->close();
+}
 
 // team
 
@@ -173,6 +191,20 @@ function team_exists(int $id): bool {
 	$rslt->free();
 	$stmt->close();
 	return !is_null($item);
+}
+
+function team_stations(int $id): ?int {
+	global $db;
+	$stmt = $db->prepare('SELECT COUNT(`id`) AS `stations` FROM `station` WHERE `team` = ?');
+	$stmt->bind_param('i', $id);
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$item = $rslt->fetch_assoc();
+	$rslt->free();
+	$stmt->close();
+	if (is_null($item))
+		return NULL;
+	return $item['stations'];
 }
 
 function team_players(int $id): ?int {
@@ -332,7 +364,7 @@ function get_string_nullable(string $key): ?string {
 		return NULL;
 	$value = $_GET[$key];
 	if (!is_string($value))
-		return NULL;
+		exit($key);
 	return $value;
 }
 
@@ -341,6 +373,20 @@ function post_string(string $key): string {
 		exit($key);
 	$value = $_POST[$key];
 	if (!is_string($value))
+		exit($key);
+	return $value;
+}
+
+function post_int_nullable(string $key): ?int {
+	if (!isset($_POST[$key]))
+		return NULL;
+	$value = $_POST[$key];
+	if (!is_string($value))
+		exit($key);
+	if (empty($value))
+		return NULL;
+	$value = filter_var($value, FILTER_VALIDATE_INT);
+	if ($value === FALSE)
 		exit($key);
 	return $value;
 }
@@ -404,6 +450,24 @@ if (is_post('admin_config')) {
 	json(NULL);
 }
 
+if (is_post('station_update')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$id = post_int('id');
+	if (!station_exists($id))
+		exit('id');
+	$name = post_string('name');
+	$code = post_string('code');
+	$team = post_int_nullable('team');
+	if (!is_null($team) && !team_exists($team))
+		exit('team');
+	station_update($id, $name, $code, $team);
+	json([
+		'station_list' => station_with_code_list(),
+	]);
+}
+
 if (is_post('team_insert')) {
 	$password = post_string('password');
 	if ($password !== ADMIN_PASS)
@@ -422,7 +486,7 @@ if (is_post('team_update')) {
 		exit('password');
 	$id = post_int('id');
 	if (!team_exists($id))
-		exit('team');
+		exit('id');
 	$name = post_string('name');
 	$color = post_string('color');
 	team_update($id, $name, $color);
@@ -437,9 +501,11 @@ if (is_post('team_delete')) {
 		exit('password');
 	$id = post_int('id');
 	if (!team_exists($id))
-		exit('team');
+		exit('id');
+	if (team_stations($id) !== 0)
+		exit('id');
 	if (team_players($id) !== 0)
-		exit('team');
+		exit('id');
 	team_delete($id);
 	json([
 		'team_list' => team_list(),
