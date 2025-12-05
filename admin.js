@@ -27,11 +27,11 @@ import { lexicon } from './lexicon.js';
  */
 
 /**
- * @typedef {{game_start: string, game_stop: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}|null} AdminLogin
+ * @typedef {{game_start: string, game_stop: string, reward_success: number, reward_conquest: number, reward_rate: number, station_list: Station[], team_list: Team[], player_list: Player[]}|null} AdminLogin
  */
 
 /**
- * @type {?{password: string, game_start: string, game_stop: string, reward_success: number, reward_conquest: number, station_list: Station[], team_list: Team[], player_list: Player[]}}
+ * @type {?{password: string, game_start: string, game_stop: string, reward_success: number, reward_conquest: number, reward_rate: number, station_list: Station[], team_list: Team[], player_list: Player[]}}
  */
 let state = null;
 
@@ -43,6 +43,8 @@ function refresh() {
 		game_stop_input.value = state.game_stop;
 		reward_success_input.value = state.reward_success.toString();
 		reward_conquest_input.value = state.reward_conquest.toString();
+		reward_rate_input.value = state.reward_rate.toString();
+		reward_rate_refresh();
 		station_div.innerHTML = '';
 		state.station_list.forEach(station => {
 			station_div.appendChild(n({
@@ -68,6 +70,7 @@ function refresh() {
 	} else {
 		main_div.classList.add('d-none');
 		config_form.reset();
+		reward_rate_refresh();
 		station_div.innerHTML = '';
 		team_div.innerHTML = '';
 		player_div.innerHTML = '';
@@ -105,6 +108,7 @@ login_form.addEventListener('submit', async event => {
 		game_stop: result.game_stop,
 		reward_success: result.reward_success,
 		reward_conquest: result.reward_conquest,
+		reward_rate: result.reward_rate,
 		station_list: result.station_list,
 		team_list: result.team_list,
 		player_list: result.player_list,
@@ -156,6 +160,28 @@ reward_success_input.previousElementSibling.innerHTML = lexicon.reward_success;
  */
 const reward_conquest_input = document.getElementById('reward-conquest-input');
 reward_conquest_input.previousElementSibling.innerHTML = lexicon.reward_conquest;
+
+/**
+ * @type {HTMLInputElement}
+ */
+const reward_rate_input = document.getElementById('reward-rate-input');
+reward_rate_input.previousElementSibling.innerHTML = lexicon.reward_rate;
+
+function reward_rate_refresh() {
+	const html = [`${lexicon.reward_rate_begin}: 1.00`];
+	const game_start = Date.parse(game_start_input.value);
+	const game_stop = Date.parse(game_stop_input.value);
+	const game_duration_in_hours = (game_stop - game_start) / (60 * 60 * 1000);
+	const reward_rate = parseFloat(reward_rate_input.value);
+	const reward_rate_begin = 1;
+	const reward_rate_end = reward_rate_begin + reward_rate * game_duration_in_hours;
+	if (!isNaN(reward_rate_end))
+		html.push(`${lexicon.reward_rate_end}: ${reward_rate_end.toFixed(2)}`);
+	reward_rate_input.nextElementSibling.innerHTML = html.join(' - ');
+}
+[game_start_input, game_stop_input, reward_rate_input].forEach(element => {
+	element.addEventListener('change', reward_rate_refresh);
+});
 
 document.getElementById('submit-button').innerHTML = lexicon.submit;
 
@@ -715,6 +741,7 @@ function player_render() {
 			game_stop: result.game_stop,
 			reward_success: result.reward_success,
 			reward_conquest: result.reward_conquest,
+			reward_rate: result.reward_rate,
 			station_list: result.station_list,
 			team_list: result.team_list,
 			player_list: result.player_list,

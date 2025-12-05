@@ -20,7 +20,7 @@ try {
 
 // config
 
-function config_get_int(string $name, int $default): int {
+function config_get(string $name, mixed $default): mixed {
 	global $db;
 	$stmt = $db->prepare('SELECT `value` FROM `config` WHERE `name` = ?');
 	$stmt->bind_param('s', $name);
@@ -35,7 +35,7 @@ function config_get_int(string $name, int $default): int {
 	return $value;
 }
 
-function config_set_int(string $name, int $value): void {
+function config_set(string $name, mixed $value): void {
 	$value = serialize($value);
 	global $db;
 	$stmt = $db->prepare('REPLACE INTO `config` (`name`, `value`) VALUES (?, ?)');
@@ -45,21 +45,25 @@ function config_set_int(string $name, int $value): void {
 }
 
 function config_get_game_start(): DT {
-	$game_start = config_get_int('game_start', 0);
+	$game_start = config_get('game_start', 0);
 	return DT::from_int($game_start);
 }
 
 function config_get_game_stop(): DT {
-	$game_stop = config_get_int('game_stop', 0);
+	$game_stop = config_get('game_stop', 0);
 	return DT::from_int($game_stop);
 }
 
 function config_get_reward_success(): int {
-	return config_get_int('reward_success', 1);
+	return config_get('reward_success', 1);
 }
 
 function config_get_reward_conquest(): int {
-	return config_get_int('reward_conquest', 1);
+	return config_get('reward_conquest', 1);
+}
+
+function config_get_reward_rate(): float {
+	return config_get('reward_rate', 0.);
 }
 
 function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
@@ -69,8 +73,6 @@ function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
 		return 'finished';
 	return 'running';
 }
-
-// TODO score accelaration
 
 // station
 
@@ -345,9 +347,15 @@ function post_string(string $key): string {
 
 function post_int(string $key): int {
 	$value = post_string($key);
-	if (is_null($value))
-		exit($key);
 	$value = filter_var($value, FILTER_VALIDATE_INT);
+	if ($value === FALSE)
+		exit($key);
+	return $value;
+}
+
+function post_float(string $key): float {
+	$value = post_string($key);
+	$value = filter_var($value, FILTER_VALIDATE_FLOAT);
 	if ($value === FALSE)
 		exit($key);
 	return $value;
@@ -370,6 +378,7 @@ if (is_post('admin_login')) {
 		'game_stop' => config_get_game_stop()->to_js(),
 		'reward_success' => config_get_reward_success(),
 		'reward_conquest' => config_get_reward_conquest(),
+		'reward_rate' => config_get_reward_rate(),
 		'station_list'=> station_with_code_list(),
 		'team_list' => team_list(),
 		'player_list' => player_list(),
@@ -386,10 +395,12 @@ if (is_post('admin_config')) {
 	$game_stop = DT::from_js($game_stop);
 	$reward_success = post_int('reward_success');
 	$reward_conquest = post_int('reward_conquest');
-	config_set_int('game_start', $game_start->to_int());
-	config_set_int('game_stop', $game_stop->to_int());
-	config_set_int('reward_success', $reward_success);
-	config_set_int('reward_conquest', $reward_conquest);
+	$reward_rate = post_float('reward_rate');
+	config_set('game_start', $game_start->to_int());
+	config_set('game_stop', $game_stop->to_int());
+	config_set('reward_success', $reward_success);
+	config_set('reward_conquest', $reward_conquest);
+	config_set('reward_rate', $reward_rate);
 	json(NULL);
 }
 
@@ -546,9 +557,11 @@ if (is_get('game')) {
 		'game_start' => $game_start->to_sql(),
 		'game_stop' => $game_stop->to_sql(),
 		'game_state' => $game_state,
-		'timestamp' => $timestamp,
+		'initial_timestamp' => $game_start->to_int(),
+		'current_timestamp' => $timestamp,
 		'reward_success' => config_get_reward_success(),
 		'reward_conquest' => config_get_reward_conquest(),
+		'reward_rate' => config_get_reward_rate(),
 		'station_list' => station_list(),
 		'team_list' => team_with_players_list(),
 		'success_list' => success_with_team_list($game_start, $game_stop),

@@ -37,7 +37,7 @@ const station_list = await (async () => {
  */
 
 /**
- * @type {{station: Station, password: string, game_start: string, game_stop: string, team_list: Team[], player_list: Player[], player: ?Player}|null}
+ * @type {?{station: Station, password: string, game_start: string, game_stop: string, team_list: Team[], player_list: Player[], player: ?Player}}
  */
 let state = null;
 

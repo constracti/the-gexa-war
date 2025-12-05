@@ -34,9 +34,11 @@ import { lexicon } from './lexicon.js';
  * @property {string} game_start
  * @property {string} game_stop
  * @property {string} game_state
- * @property {number} timestamp
+ * @property {number} initial_timestamp
+ * @property {number} current_timestamp
  * @property {number} reward_success
  * @property {number} reward_conquest
+ * @property {number} reward_rate
  * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Success[]} success_list
@@ -89,6 +91,25 @@ async function refresh() {
 	 */
 	const team_score_dict = Object.fromEntries(result.team_list.map(team => [team.id, 0]));
 	/**
+	 * @param {number} current_timestamp success timestamp in seconds
+	 * @returns {number}
+	 */
+	function team_score_success(current_timestamp) {
+		const current_value = 1 + result.reward_rate / 3600 * (current_timestamp - result.initial_timestamp);
+		return result.reward_success * current_value;
+	}
+	/**
+	 * @param {number} start_timestamp conquest start timestamp in seconds
+	 * @param {number} stop_timestamp conquest stop timestamp in seconds
+	 * @returns {number}
+	 */
+	function team_score_conquest(start_timestamp, stop_timestamp) {
+		const duration = stop_timestamp - start_timestamp // seconds
+		const mean_timestamp = (start_timestamp + stop_timestamp) / 2 // seconds
+		const mean_value = 1 + result.reward_rate / 3600 * (mean_timestamp - result.initial_timestamp);
+		return result.reward_conquest / 60 * mean_value * duration;
+	}
+	/**
 	 * @type {{[k: number]: ?Success}}
 	 */
 	const station_conquest_dict = Object.fromEntries(result.station_list.map(station => [station.id, null]));
@@ -97,18 +118,18 @@ async function refresh() {
 		switch (success.type) {
 			case 'neutralization':
 				if (conquest !== null) {
-					team_score_dict[conquest.team] += (success.timestamp - conquest.timestamp) * result.reward_conquest / 60;
+					team_score_dict[conquest.team] += team_score_conquest(conquest.timestamp, success.timestamp);
 					station_conquest_dict[success.station] = null;
 				}
 				break;
 			case 'conquest':
 				if (conquest !== null) {
-					team_score_dict[conquest.team] += (success.timestamp - conquest.timestamp) * result.reward_conquest / 60;
+					team_score_dict[conquest.team] += team_score_conquest(conquest.timestamp, success.timestamp);
 				}
 				station_conquest_dict[success.station] = success;
 				break;
 		}
-		team_score_dict[success.team] += result.reward_success;
+		team_score_dict[success.team] += team_score_success(success.timestamp);
 	});
 	// TODO normalize score
 	station_list.innerHTML = '';
@@ -128,7 +149,7 @@ async function refresh() {
 			],
 		}));
 		if (conquest !== null) {
-			team_score_dict[conquest.team] += (result.timestamp - conquest.timestamp) * result.reward_conquest / 60;
+			team_score_dict[conquest.team] += team_score_conquest(conquest.timestamp, result.current_timestamp);
 			station_conquest_dict[station.id] = null;
 		}
 	});
