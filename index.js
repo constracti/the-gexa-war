@@ -3,11 +3,7 @@ import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
 /**
- * @typedef Station
- * @type {object}
- * @property {number} id
- * @property {string} name
- * @property {?number} team
+ * @typedef {import('./common.js').Station} Station
  */
 
 /**

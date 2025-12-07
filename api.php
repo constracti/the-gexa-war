@@ -18,21 +18,47 @@ try {
 	exit('mysqli::set_charset');
 }
 
+function stmt_list(mysqli_stmt $stmt): array {
+	$stmt->execute();
+	$rslt = $stmt->get_result();
+	$list = [];
+	while (!is_null($item = $rslt->fetch_assoc()))
+		$list[] = $item;
+	$rslt->free();
+	$stmt->close();
+	return $list;
+}
+
+function stmt_item(mysqli_stmt $stmt): ?array {
+	$list = stmt_list($stmt);
+	if (empty($list))
+		return NULL;
+	return $list[0];
+}
+
+function stmt_cell(mysqli_stmt $stmt): mixed {
+	$item = stmt_item($stmt);
+	if (is_null($item))
+		return NULL;
+	$item = array_values($item);
+	assert(!empty($item));
+	return $item[0];
+}
+
+function stmt_bool(mysqli_stmt $stmt): bool {
+	return !is_null(stmt_item($stmt));
+}
+
 // config
 
 function config_get(string $name, mixed $default): mixed {
 	global $db;
 	$stmt = $db->prepare('SELECT `value` FROM `config` WHERE `name` = ?');
 	$stmt->bind_param('s', $name);
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$item = $rslt->fetch_assoc();
-	$rslt->free();
-	$stmt->close();
-	if (is_null($item))
-		return $default;
-	$value = unserialize($item['value']);
-	return $value;
+	$value = stmt_cell($stmt);
+	if (is_null($value))
+		return NULL;
+	return unserialize($value);
 }
 
 function config_set(string $name, mixed $value): void {
@@ -79,51 +105,27 @@ function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
 function station_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name`, `team` FROM `station` ORDER BY `name` ASC, `id` ASC');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc()))
-		$list[] = $item;
-	$rslt->free();
-	$stmt->close();
-	return $list;
+	return stmt_list($stmt);
 }
 
 function station_with_code_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `team` FROM `station` ORDER BY `name` ASC, `id` ASC');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc()))
-		$list[] = $item;
-	$rslt->free();
-	$stmt->close();
-	return $list;
+	return stmt_list($stmt);
 }
 
 function station_exists(int $id): bool {
 	global $db;
 	$stmt = $db->prepare('SELECT `id` FROM `station` WHERE `id` = ?');
 	$stmt->bind_param('i', $id);
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$item = $rslt->fetch_assoc();
-	$rslt->free();
-	$stmt->close();
-	return !is_null($item);
+	return stmt_bool($stmt);
 }
 
 function station_matches(int $id, string $code): bool {
 	global $db;
 	$stmt = $db->prepare('SELECT `id` FROM `station` WHERE `id` = ? AND `code` = ?');
 	$stmt->bind_param('is', $id, $code);
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$item = $rslt->fetch_assoc();
-	$rslt->free();
-	$stmt->close();
-	return !is_null($item);
+	return stmt_bool($stmt);
 }
 
 function station_update(int $id, string $name, string $code, ?int $team): void {
@@ -139,27 +141,7 @@ function station_update(int $id, string $name, string $code, ?int $team): void {
 function team_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name`, `color` FROM `team` ORDER BY `name` ASC, `id` ASC');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc()))
-		$list[] = $item;
-	$rslt->free();
-	$stmt->close();
-	return $list;
-}
-
-function team_name_list(): array {
-	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name` FROM `team` ORDER BY `name` ASC, `id` ASC');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc()))
-		$list[] = $item;
-	$rslt->free();
-	$stmt->close();
-	return $list;
+	return stmt_list($stmt);
 }
 
 function team_with_players_list(): array {
@@ -171,54 +153,28 @@ function team_with_players_list(): array {
 	GROUP BY `team`.`id`, `team`.`name`
 	ORDER BY `team`.`name` ASC, `team`.`id` ASC
 	');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc()))
-		$list[] = $item;
-	$rslt->free();
-	$stmt->close();
-	return $list;
+	return stmt_list($stmt);
 }
 
 function team_exists(int $id): bool {
 	global $db;
 	$stmt = $db->prepare('SELECT `id` FROM `team` WHERE `id` = ?');
 	$stmt->bind_param('i', $id);
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$item = $rslt->fetch_assoc();
-	$rslt->free();
-	$stmt->close();
-	return !is_null($item);
+	return stmt_bool($stmt);
 }
 
 function team_stations(int $id): ?int {
 	global $db;
 	$stmt = $db->prepare('SELECT COUNT(`id`) AS `stations` FROM `station` WHERE `team` = ?');
 	$stmt->bind_param('i', $id);
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$item = $rslt->fetch_assoc();
-	$rslt->free();
-	$stmt->close();
-	if (is_null($item))
-		return NULL;
-	return $item['stations'];
+	return stmt_cell($stmt);
 }
 
 function team_players(int $id): ?int {
 	global $db;
 	$stmt = $db->prepare('SELECT COUNT(`id`) AS `players` FROM `player` WHERE `team` = ?');
 	$stmt->bind_param('i', $id);
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$item = $rslt->fetch_assoc();
-	$rslt->free();
-	$stmt->close();
-	if (is_null($item))
-		return NULL;
-	return $item['players'];
+	return stmt_cell($stmt);
 }
 
 function team_insert(string $name, string $color): void {
@@ -252,26 +208,14 @@ function team_delete(int $id): void {
 function player_list(): array {
 	global $db;
 	$stmt = $db->prepare('SELECT `id`, `name`, `team` FROM `player` ORDER BY `name` ASC, `id` ASC');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc()))
-		$list[] = $item;
-	$rslt->free();
-	$stmt->close();
-	return $list;
+	return stmt_list($stmt);
 }
 
 function player_exists(string $id): bool {
 	global $db;
 	$stmt = $db->prepare('SELECT `id` FROM `player` WHERE `id` = ?');
 	$stmt->bind_param('s', $id);
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$item = $rslt->fetch_assoc();
-	$rslt->free();
-	$stmt->close();
-	return !is_null($item);
+	return stmt_bool($stmt);
 }
 
 function player_points(): array {
@@ -281,14 +225,7 @@ function player_points(): array {
 	LEFT JOIN `success` ON `success`.`player` = `player`.`id`
 	GROUP BY `player`.`id`, `player`.`name`, `player`.`team`
 	ORDER BY `player`.`name` ASC, `player`.`id` ASC');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc()))
-		$list[] = $item;
-	$rslt->free();
-	$stmt->close();
-	return $list;
+	return stmt_list($stmt);
 }
 
 function player_insert(string $id, string $name, int $team): void {
@@ -325,18 +262,19 @@ function success_with_team_list(DT $game_start, DT $game_stop): array {
 	LEFT JOIN `player` ON `player`.`id` = `success`.`player`
 	ORDER BY `timestamp` ASC, `success`.`id` ASC
 	');
-	$stmt->execute();
-	$rslt = $stmt->get_result();
-	$list = [];
-	while (!is_null($item = $rslt->fetch_assoc())) {
-		$timestamp = DT::from_sql($item['timestamp']);
-		if (get_game_state($timestamp, $game_start, $game_stop) !== 'running')
-			continue;
-		$item['timestamp'] = $timestamp->to_int();
-		$list[] = $item;
-	}
-	$rslt->free();
-	$stmt->close();
+	$list = stmt_list($stmt);
+	$list = array_map(function(array $item): array {
+		$item['timestamp'] = DT::from_sql($item['timestamp']);
+		return $item;
+	}, $list);
+	$list = array_filter($list, function(array $item) use ($game_start, $game_stop): bool {
+		return get_game_state($item['timestamp'], $game_start, $game_stop) === 'running';
+	});
+	$list = array_values($list);
+	$list = array_map(function(array $item): array {
+		$item['timestamp'] = $item['timestamp']->to_int();
+		return $item;
+	}, $list);
 	return $list;
 }
 
@@ -579,7 +517,7 @@ if (is_post('station_login')) {
 	json([
 		'game_start' => $game_start->to_sql(),
 		'game_stop' => $game_stop->to_sql(),
-		'team_list' => team_name_list(),
+		'team_list' => team_list(),
 		'player_list' => player_list(),
 	]);
 }
@@ -636,7 +574,7 @@ if (is_get('game')) {
 
 if (is_get('player_points')) { // TODO limit to admin
 	json([
-		'team_list' => team_name_list(),
+		'team_list' => team_list(),
 		'player_list' => player_points(),
 	]);
 }

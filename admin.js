@@ -12,27 +12,46 @@ import { lexicon } from './lexicon.js';
  */
 
 /**
- * @typedef Team
+ * @typedef {import('./common.js').Team} Team
+ */
+
+/**
+ * @typedef {import('./common.js').Player} Player
+ */
+
+/**
+ * @typedef AdminLoginSuccess
  * @type {object}
- * @property {number} id
- * @property {string} name
- * @property {string} color
+ * @property {string} game_start
+ * @property {string} game_stop
+ * @property {number} reward_success
+ * @property {number} reward_conquest
+ * @property {number} reward_rate
+ * @property {Station[]} station_list
+ * @property {Team[]} team_list
+ * @property {Player[]} player_list
  */
 
 /**
- * @typedef Player
+ * @typedef {AdminLoginSuccess|null} AdminLogin
+ */
+
+/**
+ * @typedef State
  * @type {object}
- * @property {string} id
- * @property {string} name
- * @property {number} team
+ * @property {string} password
+ * @property {string} game_start
+ * @property {string} game_stop
+ * @property {number} reward_success
+ * @property {number} reward_conquest
+ * @property {number} reward_rate
+ * @property {Station[]} station_list
+ * @property {Team[]} team_list
+ * @property {Player[]} player_list
  */
 
 /**
- * @typedef {{game_start: string, game_stop: string, reward_success: number, reward_conquest: number, reward_rate: number, station_list: Station[], team_list: Team[], player_list: Player[]}|null} AdminLogin
- */
-
-/**
- * @type {?{password: string, game_start: string, game_stop: string, reward_success: number, reward_conquest: number, reward_rate: number, station_list: Station[], team_list: Team[], player_list: Player[]}}
+ * @type {?State}
  */
 let state = null;
 

@@ -3,26 +3,15 @@ import { n_option_list } from './element.js';
 import { lexicon } from './lexicon.js';
 
 /**
- * @typedef Station
- * @type {object}
- * @property {number} id
- * @property {string} name
- * @property {?number} team
+ * @typedef {import('./common.js').Station} Station
  */
 
 /**
- * @typedef Team
- * @type {object}
- * @property {number} id
- * @property {string} name
+ * @typedef {import('./common.js').Team} Team
  */
 
 /**
- * @typedef Player
- * @type {object}
- * @property {string} id
- * @property {string} name
- * @property {number} team
+ * @typedef {import('./common.js').Player} Player
  */
 
 const station_list = await (async () => {
@@ -34,11 +23,32 @@ const station_list = await (async () => {
 })();
 
 /**
- * @typedef {{game_start: string, game_stop: string, team_list: Team[], player_list: Player[]}|null} StationLogin
+ * @typedef StationLoginSuccess
+ * @type {object}
+ * @property {string} game_start
+ * @property {string} game_stop
+ * @property {Team[]} team_list
+ * @property {Player[]} player_list
  */
 
 /**
- * @type {?{station: Station, password: string, game_start: string, game_stop: string, team_list: Team[], player_list: Player[], player: ?Player}}
+ * @typedef {StationLoginSuccess|null} StationLogin
+ */
+
+/**
+ * @typedef State
+ * @type {object}
+ * @property {Station} station
+ * @property {string} password
+ * @property {string} game_start
+ * @property {string} game_stop
+ * @property {Team[]} team_list
+ * @property {Player[]} player_list
+ * @property {?Player} player
+ */
+
+/**
+ * @type {?State}
  */
 let state = null;
 
@@ -47,7 +57,10 @@ function refresh() {
 		login_form.classList.add('d-none');
 		login_form.reset();
 		station_heading.innerHTML = state.station.name;
-		game_state_div.innerHTML = `${lexicon.game_start}: ${state.game_start.split(' ')[1]}<br>${lexicon.game_stop}: ${state.game_stop.split(' ')[1]}`;
+		game_state_div.innerHTML = [
+			`${lexicon.game_start}: ${state.game_start.split(' ')[1]}`,
+			`${lexicon.game_stop}: ${state.game_stop.split(' ')[1]}`,
+		].join('<br>');
 		main_div.classList.remove('d-none');
 	} else {
 		main_div.classList.add('d-none');
