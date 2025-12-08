@@ -1,5 +1,5 @@
-import { api } from './common.js';
-import { n_option_list } from './element.js';
+import { api, textColor } from './common.js';
+import { n, n_option_list } from './element.js';
 import { lexicon } from './lexicon.js';
 
 /**
@@ -12,6 +12,15 @@ import { lexicon } from './lexicon.js';
 
 /**
  * @typedef {import('./common.js').Player} Player
+ */
+
+/**
+ * @typedef Success
+ * @type {object}
+ * @property {number} id
+ * @property {string} player
+ * @property {string} type
+ * @property {string} timestamp
  */
 
 const station_list = await (async () => {
@@ -29,6 +38,7 @@ const station_list = await (async () => {
  * @property {string} game_stop
  * @property {Team[]} team_list
  * @property {Player[]} player_list
+ * @property {Success[]} success_list
  */
 
 /**
@@ -44,8 +54,12 @@ const station_list = await (async () => {
  * @property {string} game_stop
  * @property {Team[]} team_list
  * @property {Player[]} player_list
+ * @property {Success[]} success_list
+ * @property {string} query
  * @property {?Player} player
  */
+
+// TODO use dictionaries instead of lists
 
 /**
  * @type {?State}
@@ -61,11 +75,16 @@ function refresh() {
 			`${lexicon.game_start}: ${state.game_start.split(' ')[1]}`,
 			`${lexicon.game_stop}: ${state.game_stop.split(' ')[1]}`,
 		].join('<br>');
+		keyboard_render();
+		history_div.innerHTML = '';
+		history_render();
 		main_div.classList.remove('d-none');
 	} else {
 		main_div.classList.add('d-none');
 		station_heading.innerHTML = '';
 		game_state_div.innerHTML = '';
+		keyboard_render();
+		history_div.innerHTML = '';
 		login_form.classList.remove('d-none');
 	}
 }
@@ -110,11 +129,12 @@ login_form.addEventListener('submit', async event => {
 		game_stop: result.game_stop,
 		team_list: result.team_list,
 		player_list: result.player_list,
+		success_list: result.success_list,
+		query: '',
 		player: null,
 	};
 	localStorage.setItem('station', state.station.id.toString());
 	localStorage.setItem('password', state.password);
-	keyboard_search();
 	refresh();
 });
 
@@ -154,28 +174,20 @@ const keyboard_alert = document.getElementById('keyboard-alert');
  */
 const keyboard_screen = document.getElementById('keyboard-screen');
 
-/**
- * @param {string} query
- * @returns {void}
- */
-function keyboard_search(query) {
-	if (query === undefined)
-		query = '';
-	keyboard_screen.value = query;
-	if (query === '') {
-		state.player = null;
+function keyboard_render() {
+	if (state === null || state.query === '') {
+		keyboard_screen.value = '';
+		keyboard_delete.disabled = true;
 		keyboard_alert.classList.remove('alert-success');
 		keyboard_alert.classList.remove('alert-warning');
 		keyboard_alert.classList.add('alert-info');
 		keyboard_alert.innerHTML = lexicon.player_info;
-		keyboard_delete.disabled = true;
 		keyboard_success_array.forEach(button => button.disabled = true);
 		return;
 	}
+	keyboard_screen.value = state.query;
 	keyboard_delete.disabled = false;
-	const player_list = state.player_list.filter(player => player.id === query);
-	if (player_list.length !== 1) {
-		state.player = null;
+	if (state.player === null) {
 		keyboard_alert.classList.remove('alert-success');
 		keyboard_alert.classList.add('alert-warning');
 		keyboard_alert.classList.remove('alert-info');
@@ -183,13 +195,35 @@ function keyboard_search(query) {
 		keyboard_success_array.forEach(button => button.disabled = true);
 		return;
 	}
-	state.player = player_list[0];
+	let conqueror = state.station.team;
+	state.success_list.forEach(success => {
+		switch (success.type) {
+			case 'neutralization':
+				conqueror = null;
+				break;
+			case 'conquest':
+				conqueror = state.player_list.filter(player => player.id === success.player)[0].team;
+				break;
+		}
+	});
 	const team = state.team_list.filter(team => team.id === state.player.team)[0];
 	keyboard_alert.classList.add('alert-success');
 	keyboard_alert.classList.remove('alert-warning');
 	keyboard_alert.classList.remove('alert-info');
 	keyboard_alert.innerHTML = `${state.player.name} ${lexicon.player_from} ${team.name}`;
-	keyboard_success_array.forEach(button => button.disabled = false);
+	keyboard_success_array.forEach(button => {
+		switch (button.dataset.success) {
+			case 'simple':
+				button.disabled = false;
+				break;
+			case 'neutralization':
+				button.disabled = (conqueror === null) || (conqueror === team.id);
+				break;
+			case 'conquest':
+				button.disabled = conqueror === team.id;
+				break;
+		}
+	});
 }
 
 /**
@@ -197,12 +231,17 @@ function keyboard_search(query) {
  */
 const keyboard_delete = document.getElementById('keyboard-delete');
 keyboard_delete.addEventListener('click', () => {
-	keyboard_search();
+	state.query = '';
+	state.player = null;
+	refresh();
 });
 
 for (const keyboard_number of document.getElementsByClassName('keyboard-number')) {
 	keyboard_number.addEventListener('click', event => {
-		keyboard_search(keyboard_screen.value + event.currentTarget.innerHTML);
+		state.query += event.currentTarget.innerHTML;
+		const player_list = state.player_list.filter(player => player.id === state.query);
+		state.player = player_list.length === 1 ? player_list[0] : null;
+		refresh();
 	});
 }
 
@@ -223,28 +262,136 @@ keyboard_success_array.forEach(button => {
 			break;
 	}
 	button.addEventListener('click', async () => {
-		const message = `${button.innerHTML}: ${state.player.name}`;
-		if (!confirm(message))
-			return;
 		const formData = new FormData();
 		formData.append('station', state.station.id);
 		formData.append('password', state.password);
 		formData.append('type', button.dataset.success);
 		formData.append('player', state.player.id);
 		/**
-		 * @type {{game_start: string, game_stop: string, game_state: string}}
+		 * @type {{game_start: string, game_stop: string, game_state: string, success_list: ?Success[]}}
 		 */
-		const result = await api.post('player_success', formData);
+		const result = await api.post('success_insert', formData);
 		if (result.game_state === 'pending')
 			alert(lexicon.game_pending);
 		else if (result.game_state === 'finished')
 			alert(lexicon.game_finished);
 		state.game_start = result.game_start;
 		state.game_stop = result.game_stop;
-		keyboard_search();
+		if (result.success_list !== null)
+			state.success_list = result.success_list;
+		state.query = '';
+		state.player = null;
 		refresh();
 	});
 });
+
+document.getElementById('history-heading').innerHTML = lexicon.history;
+
+/**
+ * @type {HTMLDivElement}
+ */
+const history_div = document.getElementById('history-div');
+
+function history_render() {
+	(() => {
+		const team = state.team_list.filter(team => team.id === state.station.team)[0];
+		history_div.prepend(n({
+			class: 'list-group-item p-1 d-flex flex-column',
+			content: [
+				n({
+					class: 'd-flex flex-row align-items-center',
+					content: [
+						n({
+							class: 'badge text-bg-info m-1',
+							content: state.game_start.split(' ')[1],
+						}),
+						n({
+							class: 'flex-grow-1 m-1',
+							content: lexicon.team_initial,
+						}),
+					],
+				}),
+				n({
+					class: 'd-flex flex-row align-items-center',
+					content: [
+						team ? n({
+							class: 'badge m-1',
+							style: {
+								backgroundColor: team.color,
+								color: textColor(team.color),
+							},
+							content: team.name,
+						}) : n({
+							class: 'badge text-bg-info m-1',
+							content: '-',
+						}),
+					],
+				}),
+			],
+		}));
+	})();
+	state.success_list.forEach((success, index, array) => {
+		const player = state.player_list.filter(player => player.id === success.player)[0];
+		const team = state.team_list.filter(team => team.id === player.team)[0];
+		history_div.prepend(n({
+			class: 'list-group-item p-1 d-flex flex-column',
+			content: [
+				n({
+					class: 'd-flex flex-row align-items-center',
+					content: [
+						n({
+							class: 'badge text-bg-info m-1',
+							content: success.timestamp.split(' ')[1],
+						}),
+						n({
+							class: 'flex-grow-1 m-1',
+							content: success.type === 'conquest' ? lexicon.success_conquest : (
+								success.type === 'neutralization' ? lexicon.success_neutralization : lexicon.success_simple
+							),
+						}),
+						index === array.length - 1 ? n({
+							class: 'btn btn-danger btn-sm m-1',
+							click: async () => {
+								if (!confirm(`${lexicon.delete}${lexicon.question_mark}`))
+									return;
+								const formData = new FormData();
+								formData.append('station', state.station.id);
+								formData.append('password', state.password);
+								formData.append('id', success.id.toString());
+								/**
+								 * @type {{game_start: string, game_stop: string, success_list: Success[]}}
+								 */
+								const result = await api.post('success_delete', formData);
+								state.game_start = result.game_start;
+								state.game_stop = result.game_stop;
+								state.success_list = result.success_list;
+								refresh();
+							},
+							content: lexicon.delete,
+						}) : n({}),
+					],
+				}),
+				n({
+					class: 'd-flex flex-row align-items-center',
+					content: [
+						n({
+							class: 'badge m-1',
+							style: {
+								backgroundColor: team.color,
+								color: textColor(team.color),
+							},
+							content: team.name,
+						}),
+						n({
+							class: 'm-1',
+							content: player.name,
+						}),
+					],
+				}),
+			],
+		}));
+	});
+}
 
 // init
 
@@ -287,8 +434,9 @@ function station_read() {
 		game_stop: result.game_stop,
 		team_list: result.team_list,
 		player_list: result.player_list,
+		success_list: result.success_list,
+		query: '',
 		player: null,
 	};
-	keyboard_search();
 	refresh();
 })();

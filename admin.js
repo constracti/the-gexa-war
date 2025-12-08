@@ -305,7 +305,7 @@ function station_render() {
 								class: 'form-select form-select-sm',
 								value: station.team?.toString(),
 								name: 'team',
-								content: n_option_list(state.team_list, `(${lexicon.team})`),
+								content: n_option_list(state.team_list, `(${lexicon.team_initial})`),
 							}),
 						],
 					}),

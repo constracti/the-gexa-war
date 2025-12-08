@@ -10,6 +10,7 @@ export const lexicon = {
 	game_start: 'Έναρξη παιχνιδιού',
 	game_stop: 'Λήξη παιχνιδιού',
 	hide: 'Απόκρυψη',
+	history: 'Ιστορικό',
 	id: 'Κωδικός',
 	id_exists: 'Ο κωδικός αυτός δεν είναι διαθέσιμος.',
 	login: 'Είσοδος',
@@ -36,6 +37,7 @@ export const lexicon = {
 	station: 'Σταθμός',
 	station_list: 'Σταθμοί',
 	team: 'Ομάδα',
+	team_initial: 'Αρχική ομάδα',
 	team_list: 'Ομάδες',
 	title: 'The ΓΕΧΑ War',
 };

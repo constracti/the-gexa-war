@@ -128,6 +128,32 @@ function station_matches(int $id, string $code): bool {
 	return stmt_bool($stmt);
 }
 
+function station_conqueror(int $station, DT $game_start, DT $game_stop): ?int {
+	global $db;
+	$game_start = $game_start->to_sql();
+	$game_stop = $game_stop->to_sql();
+	$stmt = $db->prepare('
+	(
+	SELECT IF(`success`.`type` = \'conquest\', `player`.`team`, NULL)
+	FROM `success`
+	LEFT JOIN `player` ON `player`.`id` = `success`.`player`
+	WHERE `success`.`station` = ? AND `success`.`dt` >= ? AND `success`.`dt` < ? AND `success`.`type` != \'simple\'
+	ORDER BY `success`.`dt` DESC, `success`.`id` DESC
+	LIMIT 1
+	)
+
+	UNION ALL
+
+	(
+	SELECT `team`
+	FROM `station`
+	WHERE `id` = ?
+	)
+	');
+	$stmt->bind_param('issi', $station, $game_start, $game_stop, $station);
+	return stmt_cell($stmt);
+}
+
 function station_update(int $id, string $name, string $code, ?int $team): void {
 	global $db;
 	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `team` = ? WHERE `id` = ?');
@@ -228,6 +254,13 @@ function player_points(): array {
 	return stmt_list($stmt);
 }
 
+function player_team(string $id): int {
+	global $db;
+	$stmt = $db->prepare('SELECT `team` FROM `player` WHERE `id` = ?');
+	$stmt->bind_param('s', $id);
+	return stmt_cell($stmt);
+}
+
 function player_insert(string $id, string $name, int $team): void {
 	global $db;
 	$stmt = $db->prepare('INSERT INTO `player` (`id`, `name`, `team`) VALUES (?, ?, ?)');
@@ -278,15 +311,54 @@ function success_with_team_list(DT $game_start, DT $game_stop): array {
 	return $list;
 }
 
+function success_list_by_station(int $station, DT $game_start, DT $game_stop): array {
+	global $db;
+	$stmt = $db->prepare('
+	SELECT `id`, `player`, `type`, `dt` AS `timestamp`
+	FROM `success`
+	WHERE `station` = ?
+	ORDER BY `timestamp` ASC, `id` ASC
+	');
+	$stmt->bind_param('i', $station);
+	$list = stmt_list($stmt);
+	$list = array_map(function(array $item): array {
+		$item['timestamp'] = DT::from_sql($item['timestamp']);
+		return $item;
+	}, $list);
+	$list = array_filter($list, function(array $item) use ($game_start, $game_stop): bool {
+		return get_game_state($item['timestamp'], $game_start, $game_stop) === 'running';
+	});
+	$list = array_values($list);
+	$list = array_map(function(array $item): array {
+		$item['timestamp'] = $item['timestamp']->to_sql();
+		return $item;
+	}, $list);
+	return $list;
+}
+
+function success_latest(int $station): ?int {
+	global $db;
+	$stmt = $db->prepare('SELECT `id` FROM `success` WHERE `station` = ? ORDER BY `dt` DESC, `id` DESC LIMIT 1');
+	$stmt->bind_param('i', $station);
+	return stmt_cell($stmt);
+}
+
 function success_insert(int $station, string $player, string $type, DT $dt): void {
+	$dt = $dt->to_sql();
 	global $db;
 	$stmt = $db->prepare('INSERT INTO `success` (`station`, `player`, `type`, `dt`) VALUES (?, ?, ?, ?)');
-	$stmt->bind_param('isss', $station, $player, $type, $dt->to_sql());
+	$stmt->bind_param('isss', $station, $player, $type, $dt);
 	$stmt->execute();
 	$stmt->close();
 }
 
-// TODO success delete
+function success_delete(int $id): void {
+	global $db;
+	$stmt = $db->prepare('DELETE FROM `success` WHERE `id` = ?');
+	$stmt->bind_param('i', $id);
+	$stmt->execute();
+	$stmt->close();
+}
 
 // TODO success truncate
 
@@ -519,10 +591,11 @@ if (is_post('station_login')) {
 		'game_stop' => $game_stop->to_sql(),
 		'team_list' => team_list(),
 		'player_list' => player_list(),
+		'success_list' => success_list_by_station($station, $game_start, $game_stop),
 	]);
 }
 
-if (is_post('player_success')) {
+if (is_post('success_insert')) {
 	$station = post_int('station');
 	$password = post_string('password');
 	if (!station_matches($station, $password))
@@ -537,12 +610,46 @@ if (is_post('player_success')) {
 	$game_stop = config_get_game_stop();
 	$now = DT::from_now();
 	$game_state = get_game_state($now, $game_start, $game_stop);
-	if ($game_state === 'running')
-		success_insert($station, $player, $type, $now);
+	if ($game_state !== 'running') {
+		json([
+			'game_start' => $game_start->to_sql(),
+			'game_stop' => $game_stop->to_sql(),
+			'game_state' => $game_state,
+			'success_list' => NULL,
+		]);
+	}
+	$team = player_team($player);
+	$conqueror = station_conqueror($station, $game_start, $game_stop);
+	if ($type === 'neutralization' && (!is_null($conqueror) || $team === $conqueror))
+		exit('type');
+	if ($type === 'conquest' && $team === $conqueror)
+		exit('type');
+	$game_state = get_game_state($now, $game_start, $game_stop);
+	success_insert($station, $player, $type, $now);
 	json([
 		'game_start' => $game_start->to_sql(),
 		'game_stop' => $game_stop->to_sql(),
 		'game_state' => $game_state,
+		'success_list' => success_list_by_station($station, $game_start, $game_stop),
+	]);
+}
+
+if (is_post('success_delete')) {
+	$station = post_int('station');
+	$password = post_string('password');
+	if (!station_matches($station, $password))
+		exit('credentials');
+	$id = post_int('id');
+	if (success_latest($station) !== $id)
+		exit('id');
+	success_delete($id);
+	$game_start = config_get_game_start();
+	$game_stop = config_get_game_stop();
+	$now = DT::from_now();
+	json([
+		'game_start' => $game_start->to_sql(),
+		'game_stop' => $game_stop->to_sql(),
+		'success_list' => success_list_by_station($station, $game_start, $game_stop),
 	]);
 }
 
