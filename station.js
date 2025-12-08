@@ -23,26 +23,23 @@ import { lexicon } from './lexicon.js';
  * @property {string} timestamp
  */
 
-const station_list = await (async () => {
+let station_map = await (async () => {
 	/**
 	 * @type {{station_list: Station[]}}
 	 */
 	const result = await api.get('station_list');
-	return result.station_list;
+	return new Map(result.station_list.map(station => [station.id, station]));
 })();
 
 /**
- * @typedef StationLoginSuccess
+ * @typedef ServerData
  * @type {object}
  * @property {string} game_start
  * @property {string} game_stop
+ * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Player[]} player_list
  * @property {Success[]} success_list
- */
-
-/**
- * @typedef {StationLoginSuccess|null} StationLogin
  */
 
 /**
@@ -52,24 +49,44 @@ const station_list = await (async () => {
  * @property {string} password
  * @property {string} game_start
  * @property {string} game_stop
- * @property {Team[]} team_list
- * @property {Player[]} player_list
+ * @property {Map<number, Team>} team_map
+ * @property {Map<string, Player>} player_map
  * @property {Success[]} success_list
  * @property {string} query
  * @property {?Player} player
  */
-
-// TODO use dictionaries instead of lists
 
 /**
  * @type {?State}
  */
 let state = null;
 
+/**
+ * @param {number} id station id
+ * @param {string} password
+ * @param {ServerData} result
+ * @returns {void}
+ */
+function state_load(id, password, result) {
+	station_map = new Map(result.station_list.map(station => [station.id, station]));
+	state = {
+		station: station_map.get(id),
+		password: password,
+		game_start: result.game_start,
+		game_stop: result.game_stop,
+		team_map: new Map(result.team_list.map(team => [team.id, team])),
+		player_map: new Map(result.player_list.map(player => [player.id, player])),
+		success_list: result.success_list,
+		query: '',
+		player: null,
+	};
+}
+
 function refresh() {
 	if (state !== null) {
 		login_form.classList.add('d-none');
 		login_form.reset();
+		station_select.innerHTML = '';
 		station_heading.innerHTML = state.station.name;
 		game_state_div.innerHTML = [
 			`${lexicon.game_start}: ${state.game_start.split(' ')[1]}`,
@@ -81,6 +98,8 @@ function refresh() {
 		main_div.classList.remove('d-none');
 	} else {
 		main_div.classList.add('d-none');
+		station_select.innerHTML = '';
+		station_select.append(...n_option_list(Array.from(station_map.values()), lexicon.select));
 		station_heading.innerHTML = '';
 		game_state_div.innerHTML = '';
 		keyboard_render();
@@ -96,9 +115,6 @@ function refresh() {
  */
 const station_select = document.getElementById('station-select');
 station_select.previousElementSibling.innerHTML = lexicon.station;
-n_option_list(station_list, lexicon.select).forEach(option => {
-	station_select.appendChild(option);
-});
 
 /**
  * @type {HTMLInputElement}
@@ -115,25 +131,15 @@ const login_form = document.getElementById('login-form');
 login_form.addEventListener('submit', async event => {
 	event.preventDefault();
 	/**
-	 * @type {StationLogin}
+	 * @type {ServerData|null}
 	 */
 	const result = await api.post('station_login', new FormData(login_form));
 	if (result === null) {
 		alert(lexicon.password_wrong);
 		return;
 	}
-	state = {
-		station: station_list.filter(station => station.id === parseInt(station_select.value))[0],
-		password: password_input.value,
-		game_start: result.game_start,
-		game_stop: result.game_stop,
-		team_list: result.team_list,
-		player_list: result.player_list,
-		success_list: result.success_list,
-		query: '',
-		player: null,
-	};
-	localStorage.setItem('station', state.station.id.toString());
+	state_load(parseInt(station_select.value), password_input.value, result);
+	localStorage.setItem('station', state.station.id);
 	localStorage.setItem('password', state.password);
 	refresh();
 });
@@ -202,11 +208,11 @@ function keyboard_render() {
 				conqueror = null;
 				break;
 			case 'conquest':
-				conqueror = state.player_list.filter(player => player.id === success.player)[0].team;
+				conqueror = state.player_map.get(success.player).team;
 				break;
 		}
 	});
-	const team = state.team_list.filter(team => team.id === state.player.team)[0];
+	const team = state.team_map.get(state.player.team);
 	keyboard_alert.classList.add('alert-success');
 	keyboard_alert.classList.remove('alert-warning');
 	keyboard_alert.classList.remove('alert-info');
@@ -239,8 +245,7 @@ keyboard_delete.addEventListener('click', () => {
 for (const keyboard_number of document.getElementsByClassName('keyboard-number')) {
 	keyboard_number.addEventListener('click', event => {
 		state.query += event.currentTarget.innerHTML;
-		const player_list = state.player_list.filter(player => player.id === state.query);
-		state.player = player_list.length === 1 ? player_list[0] : null;
+		state.player = state.player_map.get(state.query) ?? null;
 		refresh();
 	});
 }
@@ -268,19 +273,17 @@ keyboard_success_array.forEach(button => {
 		formData.append('type', button.dataset.success);
 		formData.append('player', state.player.id);
 		/**
-		 * @type {{game_start: string, game_stop: string, game_state: string, success_list: ?Success[]}}
+		 * @type {ServerData|string}
 		 */
 		const result = await api.post('success_insert', formData);
-		if (result.game_state === 'pending')
-			alert(lexicon.game_pending);
-		else if (result.game_state === 'finished')
-			alert(lexicon.game_finished);
-		state.game_start = result.game_start;
-		state.game_stop = result.game_stop;
-		if (result.success_list !== null)
-			state.success_list = result.success_list;
-		state.query = '';
-		state.player = null;
+		if (typeof(result) === 'string') {
+			if (result === 'pending')
+				alert(lexicon.game_pending);
+			else if (result === 'finished')
+				alert(lexicon.game_finished);
+			return;
+		}
+		state_load(state.station.id, state.password, result);
 		refresh();
 	});
 });
@@ -294,7 +297,7 @@ const history_div = document.getElementById('history-div');
 
 function history_render() {
 	(() => {
-		const team = state.team_list.filter(team => team.id === state.station.team)[0];
+		const team = state.team_map.get(state.station.team);
 		history_div.prepend(n({
 			class: 'list-group-item p-1 d-flex flex-column',
 			content: [
@@ -331,8 +334,8 @@ function history_render() {
 		}));
 	})();
 	state.success_list.forEach((success, index, array) => {
-		const player = state.player_list.filter(player => player.id === success.player)[0];
-		const team = state.team_list.filter(team => team.id === player.team)[0];
+		const player = state.player_map.get(success.player);
+		const team = state.team_map.get(player.team);
 		history_div.prepend(n({
 			class: 'list-group-item p-1 d-flex flex-column',
 			content: [
@@ -357,14 +360,12 @@ function history_render() {
 								const formData = new FormData();
 								formData.append('station', state.station.id);
 								formData.append('password', state.password);
-								formData.append('id', success.id.toString());
+								formData.append('id', success.id);
 								/**
-								 * @type {{game_start: string, game_stop: string, success_list: Success[]}}
+								 * @type {ServerData}
 								 */
 								const result = await api.post('success_delete', formData);
-								state.game_start = result.game_start;
-								state.game_stop = result.game_stop;
-								state.success_list = result.success_list;
+								state_load(state.station.id, state.password, result);
 								refresh();
 							},
 							content: lexicon.delete,
@@ -395,48 +396,25 @@ function history_render() {
 
 // init
 
-/**
- * @returns {?Station}
- */
-function station_read() {
-	const station_str = localStorage.getItem('station');
-	if (station_str === null)
-		return null;
-	const station_id = parseInt(station_str);
-	const station_list_by_id = station_list.filter(station => station.id === station_id);
-	if (station_list_by_id.length !== 1)
-		return null;
-	return station_list_by_id[0];
-}
-
 (async () => {
-	const station = station_read();
+	const station_str = localStorage.getItem('station');
+	const station_id = station_str !== null ? parseInt(station_str) : null;
 	const password = localStorage.getItem('password');
-	if (station === null || password === null) {
-		login_form.classList.remove('d-none');
+	if (station_id === null || password === null) {
+		refresh();
 		return;
 	}
 	const formData = new FormData();
-	formData.append('station', station.id);
+	formData.append('station', station_id);
 	formData.append('password', password);
 	/**
-	 * @type {StationLogin}
+	 * @type {ServerData|null}
 	 */
 	const result = await api.post('station_login', formData);
 	if (result === null) {
-		login_form.classList.remove('d-none');
+		refresh();
 		return;
 	}
-	state = {
-		station: station,
-		password: password,
-		game_start: result.game_start,
-		game_stop: result.game_stop,
-		team_list: result.team_list,
-		player_list: result.player_list,
-		success_list: result.success_list,
-		query: '',
-		player: null,
-	};
+	state_load(station_id, password, result);
 	refresh();
 })();

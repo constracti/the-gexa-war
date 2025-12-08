@@ -589,6 +589,7 @@ if (is_post('station_login')) {
 	json([
 		'game_start' => $game_start->to_sql(),
 		'game_stop' => $game_stop->to_sql(),
+		'station_list' => station_list(),
 		'team_list' => team_list(),
 		'player_list' => player_list(),
 		'success_list' => success_list_by_station($station, $game_start, $game_stop),
@@ -610,26 +611,21 @@ if (is_post('success_insert')) {
 	$game_stop = config_get_game_stop();
 	$now = DT::from_now();
 	$game_state = get_game_state($now, $game_start, $game_stop);
-	if ($game_state !== 'running') {
-		json([
-			'game_start' => $game_start->to_sql(),
-			'game_stop' => $game_stop->to_sql(),
-			'game_state' => $game_state,
-			'success_list' => NULL,
-		]);
-	}
+	if ($game_state !== 'running')
+		json($game_state);
 	$team = player_team($player);
 	$conqueror = station_conqueror($station, $game_start, $game_stop);
-	if ($type === 'neutralization' && (!is_null($conqueror) || $team === $conqueror))
+	if ($type === 'neutralization' && (is_null($conqueror) || $team === $conqueror))
 		exit('type');
 	if ($type === 'conquest' && $team === $conqueror)
 		exit('type');
-	$game_state = get_game_state($now, $game_start, $game_stop);
 	success_insert($station, $player, $type, $now);
 	json([
 		'game_start' => $game_start->to_sql(),
 		'game_stop' => $game_stop->to_sql(),
-		'game_state' => $game_state,
+		'station_list' => station_list(),
+		'team_list' => team_list(),
+		'player_list' => player_list(),
 		'success_list' => success_list_by_station($station, $game_start, $game_stop),
 	]);
 }
@@ -649,6 +645,9 @@ if (is_post('success_delete')) {
 	json([
 		'game_start' => $game_start->to_sql(),
 		'game_stop' => $game_stop->to_sql(),
+		'station_list' => station_list(),
+		'team_list' => team_list(),
+		'player_list' => player_list(),
 		'success_list' => success_list_by_station($station, $game_start, $game_stop),
 	]);
 }

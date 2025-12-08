@@ -61,9 +61,9 @@ function refresh() {
 		login_form.reset();
 		game_start_input.value = state.game_start;
 		game_stop_input.value = state.game_stop;
-		reward_success_input.value = state.reward_success.toString();
-		reward_conquest_input.value = state.reward_conquest.toString();
-		reward_rate_input.value = state.reward_rate.toString();
+		reward_success_input.value = state.reward_success;
+		reward_conquest_input.value = state.reward_conquest;
+		reward_rate_input.value = state.reward_rate;
 		reward_rate_refresh();
 		station_div.innerHTML = '';
 		station_render();
@@ -261,7 +261,7 @@ function station_render() {
 					event.preventDefault();
 					const formData = new FormData(event.currentTarget);
 					formData.append('password', state.password);
-					formData.append('id', station.id.toString());
+					formData.append('id', station.id);
 					/**
 					 * @type {{station_list: Station[]}}
 					 */
@@ -406,7 +406,7 @@ function team_render() {
 								return;
 							const formData = new FormData();
 							formData.append('password', state.password);
-							formData.append('id', team.id.toString());
+							formData.append('id', team.id);
 							/**
 							 * @type {{team_list: Team[]}}
 							 */
@@ -426,7 +426,7 @@ function team_render() {
 					event.preventDefault();
 					const formData = new FormData(event.currentTarget);
 					formData.append('password', state.password);
-					formData.append('id', team.id.toString());
+					formData.append('id', team.id);
 					/**
 					 * @type {{team_list: Team[]}}
 					 */
