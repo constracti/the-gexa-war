@@ -62,8 +62,8 @@ function config_get(string $name, mixed $default): mixed {
 }
 
 function config_set(string $name, mixed $value): void {
-	$value = serialize($value);
 	global $db;
+	$value = serialize($value);
 	$stmt = $db->prepare('REPLACE INTO `config` (`name`, `value`) VALUES (?, ?)');
 	$stmt->bind_param('ss', $name, $value);
 	$stmt->execute();
@@ -343,9 +343,15 @@ function success_latest(int $station): ?int {
 	return stmt_cell($stmt);
 }
 
-function success_insert(int $station, string $player, string $type, DT $dt): void {
-	$dt = $dt->to_sql();
+function success_count(): int {
 	global $db;
+	$stmt = $db->prepare('SELECT COUNT(`id`) FROM `success`');
+	return stmt_cell($stmt);
+}
+
+function success_insert(int $station, string $player, string $type, DT $dt): void {
+	global $db;
+	$dt = $dt->to_sql();
 	$stmt = $db->prepare('INSERT INTO `success` (`station`, `player`, `type`, `dt`) VALUES (?, ?, ?, ?)');
 	$stmt->bind_param('isss', $station, $player, $type, $dt);
 	$stmt->execute();
@@ -360,7 +366,12 @@ function success_delete(int $id): void {
 	$stmt->close();
 }
 
-// TODO success truncate
+function success_truncate(): void {
+	global $db;
+	$stmt = $db->prepare('TRUNCATE `success`');
+	$stmt->execute();
+	$stmt->close();
+}
 
 // api
 
@@ -438,6 +449,7 @@ if (is_post('admin_login')) {
 		'station_list'=> station_with_code_list(),
 		'team_list' => team_list(),
 		'player_list' => player_list(),
+		'success_count' => success_count(),
 	]);
 }
 
@@ -569,6 +581,16 @@ if (is_post('player_delete')) {
 	player_delete($id);
 	json([
 		'player_list' => player_list(),
+	]);
+}
+
+if (is_post('success_truncate')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	success_truncate();
+	json([
+		'success_count' => success_count(),
 	]);
 }
 

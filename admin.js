@@ -30,6 +30,7 @@ import { lexicon } from './lexicon.js';
  * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Player[]} player_list
+ * @property {number} success_count
  */
 
 /**
@@ -48,6 +49,7 @@ import { lexicon } from './lexicon.js';
  * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Player[]} player_list
+ * @property {number} success_count
  */
 
 /**
@@ -71,6 +73,7 @@ function refresh() {
 		team_render();
 		player_div.innerHTML = '';
 		player_render();
+		success_count.innerHTML = state.success_count;
 		main_div.classList.remove('d-none');
 	} else {
 		main_div.classList.add('d-none');
@@ -79,6 +82,7 @@ function refresh() {
 		station_div.innerHTML = '';
 		team_div.innerHTML = '';
 		player_div.innerHTML = '';
+		success_count.innerHTML = '';
 		login_form.classList.remove('d-none');
 	}
 }
@@ -117,6 +121,7 @@ login_form.addEventListener('submit', async event => {
 		station_list: result.station_list,
 		team_list: result.team_list,
 		player_list: result.player_list,
+		success_count: result.success_count,
 	};
 	localStorage.setItem('password', state.password);
 	refresh();
@@ -198,11 +203,7 @@ config_form.addEventListener('submit', async event => {
 	event.preventDefault();
 	const formData = new FormData(config_form);
 	formData.append('password', state.password);
-	/**
-	 * @type {null}
-	 */
-	const result = await api.post('admin_config', formData);
-	console.log(result); // TODO delete
+	await api.post('admin_config', formData);
 });
 
 document.getElementById('station-heading').innerHTML = lexicon.station_list;
@@ -844,6 +845,31 @@ function player_render() {
 	})();
 }
 
+document.getElementById('success-heading').innerHTML = lexicon.success_list;
+
+/**
+ * @type {HTMLDivElement}
+ */
+const success_count = document.getElementById('success-count');
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const success_truncate = document.getElementById('success-truncate');
+success_truncate.innerHTML = lexicon.truncate;
+success_truncate.addEventListener('click', async () => {
+	if (!confirm(`${lexicon.truncate}${lexicon.question_mark}`))
+		return;
+	const formData = new FormData();
+	formData.append('password', state.password);
+	/**
+	 * @type {{success_count: number}}
+	 */
+	const result = await api.post('success_truncate', formData);
+	state.success_count = result.success_count;
+	refresh();
+});
+
 // init
 
 (async () => {
@@ -869,6 +895,7 @@ function player_render() {
 			station_list: result.station_list,
 			team_list: result.team_list,
 			player_list: result.player_list,
+			success_count: result.success_count,
 		};
 	}
 	refresh();
