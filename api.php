@@ -244,13 +244,16 @@ function player_exists(string $id): bool {
 	return stmt_bool($stmt);
 }
 
-function player_points(): array {
+function player_points(DT $game_start, DT $game_stop): array {
 	global $db;
+	$game_start = $game_start->to_sql();
+	$game_stop = $game_stop->to_sql();
 	$stmt = $db->prepare('
 	SELECT `player`.`id`, `player`.`name`, `player`.`team`, COUNT(`success`.`id`) AS `points` FROM `player`
-	LEFT JOIN `success` ON `success`.`player` = `player`.`id`
+	LEFT JOIN `success` ON `success`.`player` = `player`.`id` AND `success`.`dt` >= ? AND `success`.`dt` < ?
 	GROUP BY `player`.`id`, `player`.`name`, `player`.`team`
 	ORDER BY `player`.`name` ASC, `player`.`id` ASC');
+	$stmt->bind_param('ss', $game_start, $game_stop);
 	return stmt_list($stmt);
 }
 
@@ -289,51 +292,35 @@ function player_delete(string $id): void {
 
 function success_with_team_list(DT $game_start, DT $game_stop): array {
 	global $db;
+	$game_start = $game_start->to_sql();
+	$game_stop = $game_stop->to_sql();
 	$stmt = $db->prepare('
 	SELECT `success`.`id`, `success`.`station`, `player`.`team`, `success`.`type`, `success`.`dt` AS `timestamp`
 	FROM `success`
 	LEFT JOIN `player` ON `player`.`id` = `success`.`player`
+	WHERE `success`.`dt` >= ? AND `success`.`dt` < ?
 	ORDER BY `timestamp` ASC, `success`.`id` ASC
 	');
+	$stmt->bind_param('ss', $game_start, $game_stop);
 	$list = stmt_list($stmt);
-	$list = array_map(function(array $item): array {
-		$item['timestamp'] = DT::from_sql($item['timestamp']);
+	return array_map(function(array $item): array {
+		$item['timestamp'] = DT::from_sql($item['timestamp'])->to_int();
 		return $item;
 	}, $list);
-	$list = array_filter($list, function(array $item) use ($game_start, $game_stop): bool {
-		return get_game_state($item['timestamp'], $game_start, $game_stop) === 'running';
-	});
-	$list = array_values($list);
-	$list = array_map(function(array $item): array {
-		$item['timestamp'] = $item['timestamp']->to_int();
-		return $item;
-	}, $list);
-	return $list;
 }
 
 function success_list_by_station(int $station, DT $game_start, DT $game_stop): array {
 	global $db;
+	$game_start = $game_start->to_sql();
+	$game_stop = $game_stop->to_sql();
 	$stmt = $db->prepare('
 	SELECT `id`, `player`, `type`, `dt` AS `timestamp`
 	FROM `success`
-	WHERE `station` = ?
+	WHERE `station` = ? AND `dt` >= ? AND `dt` < ?
 	ORDER BY `timestamp` ASC, `id` ASC
 	');
-	$stmt->bind_param('i', $station);
-	$list = stmt_list($stmt);
-	$list = array_map(function(array $item): array {
-		$item['timestamp'] = DT::from_sql($item['timestamp']);
-		return $item;
-	}, $list);
-	$list = array_filter($list, function(array $item) use ($game_start, $game_stop): bool {
-		return get_game_state($item['timestamp'], $game_start, $game_stop) === 'running';
-	});
-	$list = array_values($list);
-	$list = array_map(function(array $item): array {
-		$item['timestamp'] = $item['timestamp']->to_sql();
-		return $item;
-	}, $list);
-	return $list;
+	$stmt->bind_param('iss', $station, $game_start, $game_stop);
+	return stmt_list($stmt);
 }
 
 function success_latest(int $station): ?int {
@@ -700,11 +687,16 @@ if (is_get('game')) {
 	]);
 }
 
-if (is_get('player_points')) { // TODO limit to admin
+// TODO inspect timestamps to check for cheaters
+
+if (is_post('draw')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$game_start = config_get_game_start();
+	$game_stop = config_get_game_stop();
 	json([
 		'team_list' => team_list(),
-		'player_list' => player_points(),
+		'player_list' => player_points($game_start, $game_stop),
 	]);
 }
-
-// TODO draw winners page

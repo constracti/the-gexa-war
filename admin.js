@@ -870,6 +870,8 @@ success_truncate.addEventListener('click', async () => {
 	refresh();
 });
 
+document.getElementById('draw-link').innerHTML = lexicon.draw;
+
 // init
 
 (async () => {
