@@ -2,6 +2,8 @@ import { api, textColor } from './common.js';
 import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
+// TODO calculate probabilities
+
 /**
  * @typedef {import('./common.js').Team} Team
  */
@@ -36,7 +38,7 @@ function refresh() {
 	/**
 	 * @type {number[]}
 	 */
-	const frequency_list =  new Array(points_max + 1);
+	const frequency_list = new Array(points_max + 1);
 	frequency_list.fill(0);
 	state.player_list.forEach(player => {
 		frequency_list[player.points]++;

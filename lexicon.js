@@ -15,6 +15,7 @@ export const lexicon = {
 	history: 'Ιστορικό',
 	id: 'Κωδικός',
 	id_exists: 'Ο κωδικός αυτός δεν είναι διαθέσιμος.',
+	inspect: 'Επισκόπηση',
 	login: 'Είσοδος',
 	logout: 'Έξοδος',
 	name: 'Όνομα',

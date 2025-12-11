@@ -290,6 +290,24 @@ function player_delete(string $id): void {
 
 // success
 
+function success_list(DT $game_start, DT $game_stop): array {
+	global $db;
+	$game_start = $game_start->to_sql();
+	$game_stop = $game_stop->to_sql();
+	$stmt = $db->prepare('
+	SELECT `id`, `station`, `player`, `type`, `dt` AS `timestamp`
+	FROM `success`
+	WHERE `dt` >= ? AND `dt` < ?
+	ORDER BY `dt` ASC, `id` ASC
+	');
+	$stmt->bind_param('ss', $game_start, $game_stop);
+	$list = stmt_list($stmt);
+	return array_map(function(array $item): array {
+		$item['timestamp'] = DT::from_sql($item['timestamp'])->to_int();
+		return $item;
+	}, $list);
+}
+
 function success_with_team_list(DT $game_start, DT $game_stop): array {
 	global $db;
 	$game_start = $game_start->to_sql();
@@ -687,7 +705,21 @@ if (is_get('game')) {
 	]);
 }
 
-// TODO inspect timestamps to check for cheaters
+if (is_post('inspect')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$game_start = config_get_game_start();
+	$game_stop = config_get_game_stop();
+	json([
+		'station_list' => station_list(),
+		'team_list' => team_list(),
+		'player_list' => player_list(),
+		'success_list' => success_list($game_start, $game_stop),
+	]);
+}
+
+// TODO flag cheater?
 
 if (is_post('draw')) {
 	$password = post_string('password');
