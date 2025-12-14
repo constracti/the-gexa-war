@@ -1,6 +1,7 @@
 export const lexicon = {
 	add: 'Προσθήκη',
 	admin: 'Διαχείριση',
+	block: 'Αποκλεισμός',
 	cancel: 'Άκυρο',
 	candidate_count: 'Υποψήφιοι',
 	delete: 'Διαγραφή',
@@ -20,6 +21,7 @@ export const lexicon = {
 	logout: 'Έξοδος',
 	name: 'Όνομα',
 	next: 'Συνέχεια',
+	no: 'Όχι',
 	password: 'Συνθηματικό',
 	password_wrong: 'Πληκτρολόγησες λανθασμένο συνθηματικό.',
 	player_from: 'από',
@@ -49,4 +51,5 @@ export const lexicon = {
 	team_list: 'Ομάδες',
 	title: 'The ΓΕΧΑ War',
 	truncate: 'Εκκαθάριση',
+	yes: 'Ναι',
 };

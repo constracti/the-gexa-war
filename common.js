@@ -23,6 +23,7 @@ import { lexicon } from './lexicon.js';
  * @property {string} id
  * @property {string} name
  * @property {number} team
+ * @property {boolean} block
  */
 
 (title => {

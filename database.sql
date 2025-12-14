@@ -6,7 +6,8 @@ CREATE TABLE `config` (
 CREATE TABLE `player` (
 	`id` varchar(255) NOT NULL,
 	`name` varchar(255) NOT NULL,
-	`team` int(11) NOT NULL
+	`team` int(11) NOT NULL,
+	`block` tinyint(1) NOT NULL
 );
 
 CREATE TABLE `station` (

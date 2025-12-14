@@ -100,6 +100,8 @@ function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
 	return 'running';
 }
 
+// TODO import (player.id, player.name, team.name)
+
 // station
 
 function station_list(): array {
@@ -229,12 +231,13 @@ function team_delete(int $id): void {
 
 // player
 
-// TODO player active?
-
 function player_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `team` FROM `player` ORDER BY `name` ASC, `id` ASC');
-	return stmt_list($stmt);
+	$stmt = $db->prepare('SELECT `id`, `name`, `team`, `block` FROM `player` ORDER BY `name` ASC, `id` ASC');
+	return array_map(function(array $item): array {
+		$item['block'] = boolval($item['block']);
+		return $item;
+	}, stmt_list($stmt));
 }
 
 function player_exists(string $id): bool {
@@ -249,8 +252,10 @@ function player_points(DT $game_start, DT $game_stop): array {
 	$game_start = $game_start->to_sql();
 	$game_stop = $game_stop->to_sql();
 	$stmt = $db->prepare('
-	SELECT `player`.`id`, `player`.`name`, `player`.`team`, COUNT(`success`.`id`) AS `points` FROM `player`
+	SELECT `player`.`id`, `player`.`name`, `player`.`team`, COUNT(`success`.`id`) AS `points`
+	FROM `player`
 	LEFT JOIN `success` ON `success`.`player` = `player`.`id` AND `success`.`dt` >= ? AND `success`.`dt` < ?
+	WHERE NOT `player`.`block`
 	GROUP BY `player`.`id`, `player`.`name`, `player`.`team`
 	ORDER BY `player`.`name` ASC, `player`.`id` ASC');
 	$stmt->bind_param('ss', $game_start, $game_stop);
@@ -264,18 +269,18 @@ function player_team(string $id): int {
 	return stmt_cell($stmt);
 }
 
-function player_insert(string $id, string $name, int $team): void {
+function player_insert(string $id, string $name, int $team, bool $block): void {
 	global $db;
-	$stmt = $db->prepare('INSERT INTO `player` (`id`, `name`, `team`) VALUES (?, ?, ?)');
-	$stmt->bind_param('ssi', $id, $name, $team);
+	$stmt = $db->prepare('INSERT INTO `player` (`id`, `name`, `team`, `block`) VALUES (?, ?, ?, ?)');
+	$stmt->bind_param('ssii', $id, $name, $team, $block);
 	$stmt->execute();
 	$stmt->close();
 }
 
-function player_update(string $player, string $id, string $name, int $team): void {
+function player_update(string $player, string $id, string $name, int $team, bool $block): void {
 	global $db;
-	$stmt = $db->prepare('UPDATE `player` SET `id` = ?, `name` = ?, `team` = ? WHERE `id` = ?');
-	$stmt->bind_param('ssis', $id, $name, $team, $player);
+	$stmt = $db->prepare('UPDATE `player` SET `id` = ?, `name` = ?, `team` = ?, `block` = ? WHERE `id` = ?');
+	$stmt->bind_param('ssiis', $id, $name, $team, $block, $player);
 	$stmt->execute();
 	$stmt->close();
 }
@@ -550,7 +555,7 @@ if (is_post('player_insert')) {
 	$team = post_int('team');
 	if (!team_exists($team))
 		exit('team');
-	player_insert($id, $name, $team);
+	player_insert($id, $name, $team, FALSE);
 	json([
 		'player_list' => player_list(),
 	]);
@@ -570,7 +575,8 @@ if (is_post('player_update')) {
 	$team = post_int('team');
 	if (!team_exists($team))
 		exit('team');
-	player_update($player, $id, $name, $team);
+	$block = boolval(post_int('block'));
+	player_update($player, $id, $name, $team, $block);
 	json([
 		'player_list' => player_list(),
 	]);
@@ -718,8 +724,6 @@ if (is_post('inspect')) {
 		'success_list' => success_list($game_start, $game_stop),
 	]);
 }
-
-// TODO flag cheater?
 
 if (is_post('draw')) {
 	$password = post_string('password');

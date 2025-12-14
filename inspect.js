@@ -79,44 +79,34 @@ const inspect_div = document.getElementById('inspect-div');
 			previous = current;
 		});
 	});
-	interval_list.sort((lhs, rhs) => lhs.seconds - lhs.seconds).reverse();
+	interval_list.sort((lhs, rhs) => lhs.seconds - rhs.seconds);
 	interval_list.forEach(interval => {
 		const team = team_map.get(interval.player.team);
 		inspect_div.append(n({
-			class: 'list-group-item p-1 d-flex flex-column',
+			class: `list-group-item ${interval.player.block ? 'list-group-item-warning' : ''} p-1 d-flex flex-row align-items-center`,
 			content: [
 				n({
-					class: 'd-flex flex-row justify-content-between align-items-center',
-					content: [
-						n({
-							class: 'm-1',
-							content: interval.player.name,
-						}),
-						n({
-							class: 'badge m-1',
-							style: {
-								backgroundColor: team.color,
-								color: textColor(team.color),
-							},
-							content: team.name,
-						}),
-					],
+					class: 'm-1',
+					content: interval.player.name,
 				}),
 				n({
-					class: 'd-flex flex-row justify-content-between align-items-center',
+					class: 'badge m-1',
+					style: {
+						backgroundColor: team.color,
+						color: textColor(team.color),
+					},
+					content: team.name,
+				}),
+				n({
+					class: 'flex-grow-1 m-1',
 					content: [
-						n({
-							class: 'm-1',
-							content: [
-								station_map.get(interval.previous.station).name,
-								station_map.get(interval.current.station).name,
-							].join(' &rarr; '),
-						}),
-						n({
-							class: 'badge text-bg-info m-1',
-							content: interval.seconds.toString(),
-						}),
-					],
+						station_map.get(interval.previous.station).name,
+						station_map.get(interval.current.station).name,
+					].join(' &rarr; '),
+				}),
+				n({
+					class: 'badge text-bg-info m-1',
+					content: interval.seconds.toString(),
 				}),
 			],
 		}));

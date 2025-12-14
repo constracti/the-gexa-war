@@ -712,6 +712,22 @@ function player_render() {
 							}),
 						],
 					}),
+					n({
+						class: 'flex-grow-1 m-1',
+						content: [
+							n({
+								tag: 'select',
+								class: 'form-select form-select-sm',
+								value: player.block ? '1' : '0',
+								name: 'block',
+								content: n_option_list([
+									{id: 0, name: lexicon.no},
+									{id: 1, name: lexicon.yes},
+								], `(${lexicon.block})`),
+								required: true,
+							}),
+						],
+					}),
 					// row form buttons
 					n({
 						class: 'd-flex flex-row',
@@ -739,7 +755,7 @@ function player_render() {
 			// row stop
 		];
 		player_div.appendChild(n({
-			class: 'list-group-item d-flex flex-row flex-wrap justify-content-end align-items-center p-1',
+			class: `list-group-item ${player.block ? 'list-group-item-warning' : ''} d-flex flex-row flex-wrap justify-content-end align-items-center p-1`,
 			content: element_list,
 		}));
 	});
@@ -869,6 +885,8 @@ success_truncate.addEventListener('click', async () => {
 	state.success_count = result.success_count;
 	refresh();
 });
+
+document.getElementById('inspect-link').innerHTML = lexicon.inspect;
 
 document.getElementById('draw-link').innerHTML = lexicon.draw;
 
