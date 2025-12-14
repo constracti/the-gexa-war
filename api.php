@@ -100,8 +100,6 @@ function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
 	return 'running';
 }
 
-// TODO import (player.id, player.name, team.name)
-
 // station
 
 function station_list(): array {
@@ -293,6 +291,13 @@ function player_delete(string $id): void {
 	$stmt->close();
 }
 
+function player_truncate(): void {
+	global $db;
+	$stmt = $db->prepare('DELETE FROM `player`');
+	$stmt->execute();
+	$stmt->close();
+}
+
 // success
 
 function success_list(DT $game_start, DT $game_stop): array {
@@ -350,12 +355,6 @@ function success_latest(int $station): ?int {
 	global $db;
 	$stmt = $db->prepare('SELECT `id` FROM `success` WHERE `station` = ? ORDER BY `dt` DESC, `id` DESC LIMIT 1');
 	$stmt->bind_param('i', $station);
-	return stmt_cell($stmt);
-}
-
-function success_count(): int {
-	global $db;
-	$stmt = $db->prepare('SELECT COUNT(`id`) FROM `success`');
 	return stmt_cell($stmt);
 }
 
@@ -459,7 +458,6 @@ if (is_post('admin_login')) {
 		'station_list'=> station_with_code_list(),
 		'team_list' => team_list(),
 		'player_list' => player_list(),
-		'success_count' => success_count(),
 	]);
 }
 
@@ -595,14 +593,55 @@ if (is_post('player_delete')) {
 	]);
 }
 
+if (is_post('player_import')) {
+	$password = post_string('password');
+	if ($password !== ADMIN_PASS)
+		exit('password');
+	$text = post_string('text');
+	$player_list = mb_split('\r\n|\r|\n', $text);
+	if ($player_list === FALSE)
+		json(NULL);
+	$team_dict = team_list(); // NOTE name column of team table does not have a unique constraint
+	$team_dict = array_combine(array_column($team_dict, 'name'), array_column($team_dict, 'id'));
+	$player_list = array_map(function(string $player) use ($team_dict): ?array {
+		$player = mb_split('\t', $player);
+		if ($player === FALSE)
+			json(NULL);
+		if (count($player) === 1 && $player[0] === '')
+			return NULL;
+		if (count($player) !== 3)
+			json(NULL);
+		$player = array_combine(['id', 'name', 'team'], $player);
+		if (empty($player['id']))
+			json(NULL);
+		if (empty($player['name']))
+			json(NULL);
+		$team = $player['team'];
+		if (!isset($team_dict[$team]))
+			json(NULL);
+		$player['team'] = $team_dict[$team];
+		return $player;
+	}, $player_list);
+	$player_list = array_filter($player_list, function(?array $player): bool {
+		return !is_null($player);
+	});
+	if (count(array_unique(array_column($player_list, 'id'))) !== count($player_list))
+		json(NULL);
+	success_truncate();
+	player_truncate();
+	foreach ($player_list as $player)
+		player_insert($player['id'], $player['name'], $player['team'], FALSE);
+	json([
+		'player_list' => player_list(),
+	]);
+}
+
 if (is_post('success_truncate')) {
 	$password = post_string('password');
 	if ($password !== ADMIN_PASS)
 		exit('password');
 	success_truncate();
-	json([
-		'success_count' => success_count(),
-	]);
+	json(NULL);
 }
 
 if (is_get('station_list')) {

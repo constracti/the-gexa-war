@@ -31,6 +31,8 @@ document.getElementById('inspect-heading').innerHTML = lexicon.inspect;
  */
 const inspect_div = document.getElementById('inspect-div');
 
+// TODO inspect initial time
+
 (async () => {
 	const password = localStorage.getItem('password');
 	if (password === null) {

@@ -30,7 +30,6 @@ import { lexicon } from './lexicon.js';
  * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Player[]} player_list
- * @property {number} success_count
  */
 
 /**
@@ -49,7 +48,6 @@ import { lexicon } from './lexicon.js';
  * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Player[]} player_list
- * @property {number} success_count
  */
 
 /**
@@ -73,7 +71,6 @@ function refresh() {
 		team_render();
 		player_div.innerHTML = '';
 		player_render();
-		success_count.innerHTML = state.success_count;
 		main_div.classList.remove('d-none');
 	} else {
 		main_div.classList.add('d-none');
@@ -82,7 +79,6 @@ function refresh() {
 		station_div.innerHTML = '';
 		team_div.innerHTML = '';
 		player_div.innerHTML = '';
-		success_count.innerHTML = '';
 		login_form.classList.remove('d-none');
 	}
 }
@@ -121,7 +117,6 @@ login_form.addEventListener('submit', async event => {
 		station_list: result.station_list,
 		team_list: result.team_list,
 		player_list: result.player_list,
-		success_count: result.success_count,
 	};
 	localStorage.setItem('password', state.password);
 	refresh();
@@ -861,12 +856,55 @@ function player_render() {
 	})();
 }
 
-document.getElementById('success-heading').innerHTML = lexicon.success_list;
+document.getElementById('import-heading').innerHTML = lexicon.import;
 
 /**
- * @type {HTMLDivElement}
+ * @type {HTMLButtonElement}
  */
-const success_count = document.getElementById('success-count');
+const import_button = document.getElementById('import-button');
+import_button.innerHTML = lexicon.show;
+import_button.addEventListener('click', () => {
+	if (import_form.classList.contains('d-none')) {
+		import_button.innerHTML = lexicon.hide;
+		import_form.classList.remove('d-none');
+	} else {
+		import_button.innerHTML = lexicon.show;
+		import_form.classList.add('d-none');
+	}
+});
+
+/**
+ * @type {HTMLFormElement}
+ */
+const import_form = document.getElementById('import-form');
+import_form.addEventListener('submit', async event => {
+	event.preventDefault();
+	if (!confirm(lexicon.import_alert))
+		return;
+	const formData = new FormData(import_form);
+	formData.append('password', state.password);
+	/**
+	 * @type {{player_list: Player[]}|null}
+	 */
+	const result = await api.post('player_import', formData);
+	if (result === null) {
+		alert(lexicon.import_error);
+		return;
+	}
+	import_form.reset();
+	if (player_div.classList.contains('d-none'))
+		player_button.dispatchEvent(new Event('click'));
+	if (!import_form.classList.contains('d-none'))
+		import_button.dispatchEvent(new Event('click'));
+	state.player_list = result.player_list;
+	refresh();
+});
+
+document.getElementById('import-info').innerHTML = lexicon.import_info;
+
+document.getElementById('import-submit').innerHTML = lexicon.submit;
+
+document.getElementById('success-heading').innerHTML = lexicon.success_list;
 
 /**
  * @type {HTMLButtonElement}
@@ -876,14 +914,11 @@ success_truncate.innerHTML = lexicon.truncate;
 success_truncate.addEventListener('click', async () => {
 	if (!confirm(`${lexicon.truncate}${lexicon.question_mark}`))
 		return;
+	success_truncate.previousElementSibling.classList.remove('d-none');
 	const formData = new FormData();
 	formData.append('password', state.password);
-	/**
-	 * @type {{success_count: number}}
-	 */
-	const result = await api.post('success_truncate', formData);
-	state.success_count = result.success_count;
-	refresh();
+	await api.post('success_truncate', formData);
+	success_truncate.previousElementSibling.classList.add('d-none');
 });
 
 document.getElementById('inspect-link').innerHTML = lexicon.inspect;
@@ -915,7 +950,6 @@ document.getElementById('draw-link').innerHTML = lexicon.draw;
 			station_list: result.station_list,
 			team_list: result.team_list,
 			player_list: result.player_list,
-			success_count: result.success_count,
 		};
 	}
 	refresh();

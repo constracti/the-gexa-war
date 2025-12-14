@@ -73,9 +73,22 @@
 				<button class="btn btn-secondary btn-sm m-2" id="player-button"></button>
 			</div>
 			<div class="list-group d-none m-2" id="player-div"></div>
+			<div class="d-flex flex-row justify-content-between align-items-center">
+				<h4 class="m-2" id="import-heading"></h4>
+				<button class="btn btn-secondary btn-sm m-2" id="import-button"></button>
+			</div>
+			<form class="d-flex flex-column d-none" id="import-form">
+				<div class="m-2">
+					<textarea class="form-control" name="text" required="required"></textarea>
+					<div class="form-text" id="import-info"></div>
+				</div>
+				<div class="m-2">
+					<button class="btn btn-primary" id="import-submit"></button>
+				</div>
+			</form>
 			<div class="d-flex flex-row align-items-center">
 				<h3 class="flex-grow-1 m-2" id="success-heading"></h3>
-				<div class="badge text-bg-info m-2" id="success-count"></div>
+				<div class="spinner-border spinner-border-sm m-2 d-none"></div>
 				<button class="btn btn-danger btn-sm m-2" id="success-truncate"></button>
 			</div>
 			<div class="d-flex flex-row">
