@@ -171,7 +171,24 @@ function refresh() {
 
 document.getElementById('draw-heading').innerHTML = lexicon.draw;
 
-document.getElementById('point-histogram-heading').innerHTML = lexicon.point_histogram;
+document.getElementById('point-heading').innerHTML = lexicon.point_histogram;
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const point_button = document.getElementById('point-button');
+point_button.innerHTML = lexicon.hide;
+point_button.addEventListener('click', () => {
+	if (point_histogram_div.classList.contains('d-none')) {
+		point_button.innerHTML = lexicon.hide;
+		point_histogram_div.classList.remove('d-none');
+		point_threshold_form.classList.remove('d-none');
+	} else {
+		point_button.innerHTML = lexicon.show;
+		point_histogram_div.classList.add('d-none');
+		point_threshold_form.classList.add('d-none');
+	}
+});
 
 /**
  * @type {HTMLDivElement}
