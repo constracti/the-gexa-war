@@ -757,6 +757,7 @@ if (is_post('inspect')) {
 	$game_start = config_get_game_start();
 	$game_stop = config_get_game_stop();
 	json([
+		'game_start' => $game_start->to_int(),
 		'station_list' => station_list(),
 		'team_list' => team_list(),
 		'player_list' => player_list(),

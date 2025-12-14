@@ -31,8 +31,6 @@ document.getElementById('inspect-heading').innerHTML = lexicon.inspect;
  */
 const inspect_div = document.getElementById('inspect-div');
 
-// TODO inspect initial time
-
 (async () => {
 	const password = localStorage.getItem('password');
 	if (password === null) {
@@ -42,7 +40,7 @@ const inspect_div = document.getElementById('inspect-div');
 	const formData = new FormData();
 	formData.append('password', password);
 	/**
-	 * @type {{station_list: Station[], team_list: Team[], player_list: Player[], success_list: Success[]}}
+	 * @type {{game_start: number, station_list: Station[], team_list: Team[], player_list: Player[], success_list: Success[]}}
 	 */
 	const result = await api.post('inspect', formData);
 	if (result === null) {
@@ -60,7 +58,7 @@ const inspect_div = document.getElementById('inspect-div');
 		success_list_by_player.get(success.player).push(success);
 	});
 	/**
-	 * @type {{player: Player, seconds: number, previous: Success, current: Success}[]}
+	 * @type {{player: Player, seconds: number, previous: ?Success, current: Success}[]}
 	 */
 	const interval_list = [];
 	success_list_by_player.forEach((success_list, player_id) => {
@@ -70,14 +68,12 @@ const inspect_div = document.getElementById('inspect-div');
 		 */
 		let previous = null;
 		success_list.forEach(current => {
-			if (previous !== null) {
-				interval_list.push({
-					player: player,
-					seconds: current.timestamp - previous.timestamp,
-					previous: previous,
-					current: current,
-				});
-			}
+			interval_list.push({
+				player: player,
+				seconds: current.timestamp - (previous?.timestamp ?? result.game_start),
+				previous: previous,
+				current: current,
+			});
 			previous = current;
 		});
 	});
@@ -102,7 +98,7 @@ const inspect_div = document.getElementById('inspect-div');
 				n({
 					class: 'flex-grow-1 m-1',
 					content: [
-						station_map.get(interval.previous.station).name,
+						interval.previous !== null ? station_map.get(interval.previous.station).name : `(${lexicon.game_start})`,
 						station_map.get(interval.current.station).name,
 					].join(' &rarr; '),
 				}),

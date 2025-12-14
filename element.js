@@ -85,7 +85,7 @@ export function n(options) {
 }
 
 /**
- * @param {{id: number, name: string}[]} option_list // TODO use Map
+ * @param {{id: number, name: string}[]} option_list
  * @param {?string} option_null
  * @returns {HTMLOptionElement[]}
  */
