@@ -63,7 +63,11 @@ station_list.previousElementSibling.innerHTML = lexicon.station_list;
 const team_list = document.getElementById('team-list');
 team_list.previousElementSibling.innerHTML = lexicon.team_list;
 
-// TODO recent events
+/**
+ * @type {HTMLDivElement}
+ */
+const success_list = document.getElementById('success-list');
+success_list.previousElementSibling.innerHTML = lexicon.success_recent;
 
 async function refresh() {
 	spinner_div.classList.remove('d-none');
@@ -74,15 +78,17 @@ async function refresh() {
 	spinner_div.classList.add('d-none');
 	console.log(result); // TODO delete
 	if (result.game_state === 'pending')
-		alert_div.innerHTML = `${lexicon.game_start}: ${result.game_start.split(' ')[1]}<br>${lexicon.game_pending}`;
-	else if (result.game_state === 'finished')
-		alert_div.innerHTML = `${lexicon.game_stop}: ${result.game_stop.split(' ')[1]}<br>${lexicon.game_finished}`;
+		alert_div.innerHTML = `${lexicon.game_start}: ${result.game_start.split(' ')[1]}`;
 	else
 		alert_div.innerHTML = `${lexicon.game_stop}: ${result.game_stop.split(' ')[1]}`;
 	/**
-	 * @type {{[k: number]: Team}}
+	 * @type {Map<number, Station>}
 	 */
-	const team_dict = Object.fromEntries(result.team_list.map(team => [team.id, team]));
+	const station_map = new Map(result.station_list.map(station => [station.id, station]));
+	/**
+	 * @type {Map<number, Team>}
+	 */
+	const team_map = new Map(result.team_list.map(team => [team.id, team]));
 	/**
 	 * @type {{[k: number]: number}}
 	 */
@@ -147,6 +153,7 @@ async function refresh() {
 	station_list.innerHTML = '';
 	result.station_list.forEach(station => {
 		const conquest = station_conquest_dict[station.id];
+		const team = conquest !== null ? team_map.get(conquest.team) : null;
 		station_list.appendChild(n({
 			class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
 			content: [
@@ -154,9 +161,15 @@ async function refresh() {
 					class: 'm-1',
 					content: station.name,
 				}),
-				n({
-					class: 'badge text-bg-secondary m-1',
-					content: conquest !== null ? `${team_dict[conquest.team].name}` : '-',
+				team !== null ? n({
+					class: 'badge border m-1',
+					style: {
+						backgroundColor: team.color,
+						color: textColor(team.color),
+					},
+					content: team.name,
+				}) : n({
+					class: 'm-0',
 				}),
 			],
 		}));
@@ -166,25 +179,68 @@ async function refresh() {
 		}
 	});
 	team_list.innerHTML = '';
-	result.team_list.forEach(team => {
+	result.team_list.toSorted((lhs, rhs) => {
+		return -(team_score_dict[lhs.id] - team_score_dict[rhs.id]); // sort by score in descending order
+	}).forEach(team => {
 		team_list.appendChild(n({
 			class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
 			content: [
 				n({
-					class: 'm-1',
-					content: team.name,
-				}),
-				n({
-					class: 'badge m-1',
+					class: 'badge border m-1',
 					style: {
 						backgroundColor: team.color,
 						color: textColor(team.color),
 					},
+					content: team.name,
+				}),
+				n({
+					class: 'm-1',
 					content: `${team_score_dict[team.id].toFixed(0)}`,
 				}),
 			],
 		}));
 	});
+	success_list.innerHTML = '';
+	if (result.game_state !== 'running') {
+		success_list.append(n({
+			class: 'list-group-item list-group-item-warning p-2',
+			content: result.game_state === 'pending' ? lexicon.game_pending : lexicon.game_finished,
+		}));
+	} else {
+		result.success_list.filter(success => {
+			return result.current_timestamp - success.timestamp < 1e6; // TODO how old? in seconds - also, how many?
+		}).sort((lhs, rhs) => {
+			return -(lhs.timestamp - rhs.timestamp); // sort by timstamp in descending order
+		}).forEach(success => {
+			const station = station_map.get(success.station);
+			const team = team_map.get(success.team);
+			const type = success.type === 'conquest' ? lexicon.success_conquest :
+				(success.type === 'neutralization' ? lexicon.success_neutralization : lexicon.success_simple);
+			success_list.appendChild(n({
+				class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
+				content: [
+					n({
+						class: 'm-1',
+						content: `${type} ${lexicon.at} ${station.name}`,
+					}),
+					n({
+						class: 'badge border m-1',
+						style: {
+							backgroundColor: team.color,
+							color: textColor(team.color),
+						},
+						content: team.name,
+					}),
+				],
+			}));
+		});
+		if (success_list.childElementCount === 0) {
+			success_list.append(n({
+				class: 'list-group-item p-2',
+				content: '-',
+			}));
+		}
+	}
 	if (result.game_state !== 'finished')
 		setTimeout(refresh, 10000); // TODO delay
 }

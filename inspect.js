@@ -77,7 +77,7 @@ const inspect_div = document.getElementById('inspect-div');
 			previous = current;
 		});
 	});
-	interval_list.sort((lhs, rhs) => lhs.seconds - rhs.seconds);
+	interval_list.sort((lhs, rhs) => lhs.seconds - rhs.seconds); // sort by seconds in ascending order
 	interval_list.forEach(interval => {
 		const team = team_map.get(interval.player.team);
 		inspect_div.append(n({
@@ -88,7 +88,7 @@ const inspect_div = document.getElementById('inspect-div');
 					content: interval.player.name,
 				}),
 				n({
-					class: 'badge m-1',
+					class: 'badge border m-1',
 					style: {
 						backgroundColor: team.color,
 						color: textColor(team.color),

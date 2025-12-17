@@ -216,7 +216,7 @@ function keyboard_render() {
 	keyboard_alert.classList.add('alert-success');
 	keyboard_alert.classList.remove('alert-warning');
 	keyboard_alert.classList.remove('alert-info');
-	keyboard_alert.innerHTML = `${state.player.name} ${lexicon.player_from} ${team.name}`;
+	keyboard_alert.innerHTML = `${state.player.name} ${lexicon.from} ${team.name}`;
 	keyboard_success_array.forEach(button => {
 		switch (button.dataset.success) {
 			case 'simple':
@@ -318,7 +318,7 @@ function history_render() {
 					class: 'd-flex flex-row align-items-center',
 					content: [
 						team ? n({
-							class: 'badge m-1',
+							class: 'badge border m-1',
 							style: {
 								backgroundColor: team.color,
 								color: textColor(team.color),
@@ -376,7 +376,7 @@ function history_render() {
 					class: 'd-flex flex-row align-items-center',
 					content: [
 						n({
-							class: 'badge m-1',
+							class: 'badge border m-1',
 							style: {
 								backgroundColor: team.color,
 								color: textColor(team.color),

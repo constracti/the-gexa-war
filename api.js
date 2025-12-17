@@ -50,7 +50,7 @@ export class API {
 		} catch (error) {
 			console.error(error);
 			alert(lexicon.error);
-			throw new Error();
+			throw error;
 		}
 	}
 }

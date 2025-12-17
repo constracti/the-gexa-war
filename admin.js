@@ -224,6 +224,7 @@ station_button.addEventListener('click', () => {
 const station_div = document.getElementById('station-div');
 
 function station_render() {
+	const team_map = new Map(state.team_list.map(team => [team.id, team]));
 	// row
 	state.station_list.forEach(station => {
 		const element_list = [
@@ -239,7 +240,7 @@ function station_render() {
 			}),
 			n({
 				class: 'badge text-bg-info m-1',
-				content: station.team !== null ? state.team_list.filter(team => team.id === station.team)[0].name : '-',
+				content: station.team !== null ? team_map.get(station.team).name : '-',
 			}),
 			n({
 				tag: 'button',
@@ -368,19 +369,22 @@ function team_render() {
 		const element_list = [
 			// row text
 			n({
-				class: 'flex-grow-1 m-1',
-				content: team.name,
-			}),
-			n({
 				class: 'badge border m-1',
 				style: {
 					backgroundColor: team.color,
 					color: textColor(team.color),
 				},
+				content: team.name,
+			}),
+			n({
+				class: 'flex-grow-1 m-0',
+			}),
+			n({
+				class: 'm-1',
 				content: [
 					`${lexicon.station_list}: ${station_count}`,
 					`${lexicon.player_list}: ${player_count}`,
-				].join(' | '),
+				].join(' - '),
 			}),
 			n({
 				class: 'd-flex flex-row',
@@ -598,8 +602,10 @@ player_button.addEventListener('click', () => {
 const player_div = document.getElementById('player-div');
 
 function player_render() {
+	const team_map = new Map(state.team_list.map(team => [team.id, team]));
 	// row
 	state.player_list.forEach(player => {
+		const team = team_map.get(player.team);
 		const element_list = [
 			// row text
 			n({
@@ -612,8 +618,12 @@ function player_render() {
 				content: player.name,
 			}),
 			n({
-				class: 'badge text-bg-info m-1',
-				content: state.team_list.filter(team => team.id === player.team)[0].name,
+				class: 'badge border m-1',
+				style: {
+					backgroundColor: team.color,
+					color: textColor(team.color),
+				},
+				content: team.name,
 			}),
 			n({
 				class: 'd-flex flex-row',

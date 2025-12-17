@@ -2,8 +2,6 @@ import { api, textColor } from './common.js';
 import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
-// TODO calculate probabilities
-
 /**
  * @typedef {import('./common.js').Team} Team
  */
@@ -114,7 +112,7 @@ function refresh() {
 							content: winner.name,
 						}),
 						n({
-							class: 'badge m-1',
+							class: 'badge border m-1',
 							style: {
 								backgroundColor: team.color,
 								color: textColor(team.color),
