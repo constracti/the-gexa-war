@@ -42,5 +42,6 @@ export const api = new API();
  * @returns {string}
  */
 export function textColor(backgroundColor) {
-	return `lab(from ${backgroundColor} calc((50 - l) * 100 + 50) 0 0)`;
+	const mean = 60;
+	return `lab(from ${backgroundColor} calc((${mean} - l) * 100 + 100 - ${mean}) 0 0)`;
 }
