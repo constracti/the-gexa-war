@@ -129,10 +129,12 @@ async function refresh() {
 			type: 'conquest',
 			timestamp: result.initial_timestamp,
 		};
+		// apply initial conquest
 		station_conquest_dict[station.id] = success;
 	});
 	result.success_list.forEach(success => {
 		const conquest = station_conquest_dict[success.station];
+		// apply conquests and neutralizations
 		switch (success.type) {
 			case 'neutralization':
 				if (conquest !== null) {
@@ -147,9 +149,9 @@ async function refresh() {
 				station_conquest_dict[success.station] = success;
 				break;
 		}
+		// add success score
 		team_score_dict[success.team] += team_score_success(success.timestamp);
 	});
-	// TODO normalize score
 	station_list.innerHTML = '';
 	result.station_list.forEach(station => {
 		const conquest = station_conquest_dict[station.id];
@@ -173,10 +175,16 @@ async function refresh() {
 				}),
 			],
 		}));
+		// add present conquest
 		if (conquest !== null) {
 			team_score_dict[conquest.team] += team_score_conquest(conquest.timestamp, result.current_timestamp);
 			station_conquest_dict[station.id] = null;
 		}
+	});
+	// normalize score
+	result.team_list.forEach(team => {
+		if (team.players > 0)
+			team_score_dict[team.id] /= team.players;
 	});
 	team_list.innerHTML = '';
 	result.team_list.toSorted((lhs, rhs) => {
