@@ -34,6 +34,7 @@ export const lexicon = {
 	no: 'Όχι',
 	password: 'Συνθηματικό',
 	password_wrong: 'Πληκτρολόγησες λανθασμένο συνθηματικό.',
+	place: 'Τοποθεσία',
 	player_info: 'Καταχώρισε τον κωδικό του παίκτη.',
 	player_list: 'Παίκτες',
 	player_warning: 'Δεν βρέθηκε παίκτης με αυτό τον κωδικό.',

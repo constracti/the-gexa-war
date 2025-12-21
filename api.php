@@ -100,17 +100,38 @@ function get_game_state(DT $now, DT $game_start, DT $game_stop): string {
 	return 'running';
 }
 
+// place
+
+function place_list(): array {
+	global $db;
+	$stmt = $db->prepare('SELECT `id`, `name` FROM `place` ORDER BY `name` ASC, `id` ASC');
+	return stmt_list($stmt);
+}
+
+function place_with_content_list(): array {
+	global $db;
+	$stmt = $db->prepare('SELECT `id`, `name`, `content`, `top`, `left`, `width` FROM `place`');
+	return stmt_list($stmt);
+}
+
+function place_station(int $place): ?int {
+	global $db;
+	$stmt = $db->prepare('SELECT `id` FROM `station` WHERE `place` = ? ORDER BY `id` LIMIT 1');
+	$stmt->bind_param('i', $place);
+	return stmt_cell($stmt);
+}
+
 // station
 
 function station_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `team` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `team`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	return stmt_list($stmt);
 }
 
 function station_with_code_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `team` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `team`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	return stmt_list($stmt);
 }
 
@@ -127,6 +148,8 @@ function station_matches(int $id, string $code): bool {
 	$stmt->bind_param('is', $id, $code);
 	return stmt_bool($stmt);
 }
+
+// TODO remove initial station team
 
 function station_conqueror(int $station, DT $game_start, DT $game_stop): ?int {
 	global $db;
@@ -154,10 +177,10 @@ function station_conqueror(int $station, DT $game_start, DT $game_stop): ?int {
 	return stmt_cell($stmt);
 }
 
-function station_update(int $id, string $name, string $code, ?int $team): void {
+function station_update(int $id, string $name, string $code, ?int $team, ?int $place): void {
 	global $db;
-	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `team` = ? WHERE `id` = ?');
-	$stmt->bind_param('ssii', $name, $code, $team, $id);
+	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `team` = ?, `place` = ? WHERE `id` = ?');
+	$stmt->bind_param('ssiii', $name, $code, $team, $place, $id);
 	$stmt->execute();
 	$stmt->close();
 }
@@ -455,6 +478,7 @@ if (is_post('admin_login')) {
 		'reward_success' => config_get_reward_success(),
 		'reward_conquest' => config_get_reward_conquest(),
 		'reward_rate' => config_get_reward_rate(),
+		'place_list' => place_list(),
 		'station_list'=> station_with_code_list(),
 		'team_list' => team_list(),
 		'player_list' => player_list(),
@@ -492,7 +516,11 @@ if (is_post('station_update')) {
 	$team = post_int_nullable('team');
 	if (!is_null($team) && !team_exists($team))
 		exit('team');
-	station_update($id, $name, $code, $team);
+	$place = post_int_nullable('place');
+	$station_by_place = !is_null($place) ? place_station($place) : NULL;
+	if (!is_null($place) && !is_null($station_by_place) && $id !== $station_by_place)
+		exit('place');
+	station_update($id, $name, $code, $team, $place);
 	json([
 		'station_list' => station_with_code_list(),
 	]);

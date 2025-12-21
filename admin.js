@@ -3,12 +3,20 @@ import { n, n_option_list } from './element.js';
 import { lexicon } from './lexicon.js';
 
 /**
+ * @typedef Place
+ * @type {object}
+ * @property {number} id
+ * @property {string} name
+ */
+
+/**
  * @typedef Station
  * @type {object}
  * @property {number} id
  * @property {string} name
  * @property {string} code
  * @property {?number} team
+ * @property {?number} place
  */
 
 /**
@@ -27,6 +35,7 @@ import { lexicon } from './lexicon.js';
  * @property {number} reward_success
  * @property {number} reward_conquest
  * @property {number} reward_rate
+ * @property {Place[]} place_list
  * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Player[]} player_list
@@ -45,6 +54,7 @@ import { lexicon } from './lexicon.js';
  * @property {number} reward_success
  * @property {number} reward_conquest
  * @property {number} reward_rate
+ * @property {Place[]} place_list
  * @property {Station[]} station_list
  * @property {Team[]} team_list
  * @property {Player[]} player_list
@@ -114,6 +124,7 @@ login_form.addEventListener('submit', async event => {
 		reward_success: result.reward_success,
 		reward_conquest: result.reward_conquest,
 		reward_rate: result.reward_rate,
+		place_list: result.place_list,
 		station_list: result.station_list,
 		team_list: result.team_list,
 		player_list: result.player_list,
@@ -224,6 +235,8 @@ station_button.addEventListener('click', () => {
 const station_div = document.getElementById('station-div');
 
 function station_render() {
+	const place_map = new Map(state.place_list.map(place => [place.id, place]));
+	const place_set = new Set(state.station_list.map(station => station.place).filter(place => place !== null));
 	const team_map = new Map(state.team_list.map(team => [team.id, team]));
 	// row
 	state.station_list.forEach(station => {
@@ -241,6 +254,10 @@ function station_render() {
 			n({
 				class: 'badge text-bg-info m-1',
 				content: station.team !== null ? team_map.get(station.team).name : '-',
+			}),
+			n({
+				class: 'badge text-bg-info m-1',
+				content: station.place !== null ? place_map.get(station.place).name : '-',
 			}),
 			n({
 				tag: 'button',
@@ -303,6 +320,18 @@ function station_render() {
 								value: station.team?.toString(),
 								name: 'team',
 								content: n_option_list(state.team_list, `(${lexicon.team_initial})`),
+							}),
+						],
+					}),
+					n({
+						class: 'flex-grow-1 m-1',
+						content: [
+							n({
+								tag: 'select',
+								class: 'form-select form-select-sm',
+								value: station.place?.toString(),
+								name: 'place',
+								content: n_option_list(state.place_list.filter(place => !place_set.has(place.id) || place.id === station.place), `(${lexicon.place})`),
 							}),
 						],
 					}),
@@ -957,6 +986,7 @@ document.getElementById('draw-link').innerHTML = lexicon.draw;
 			reward_success: result.reward_success,
 			reward_conquest: result.reward_conquest,
 			reward_rate: result.reward_rate,
+			place_list: result.place_list,
 			station_list: result.station_list,
 			team_list: result.team_list,
 			player_list: result.player_list,
