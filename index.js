@@ -116,22 +116,6 @@ async function refresh() {
 	 * @type {{[k: number]: ?Success}}
 	 */
 	const station_conquest_dict = Object.fromEntries(result.station_list.map(station => [station.id, null]));
-	result.station_list.forEach(station => {
-		if (station.team === null)
-			return;
-		/**
-		 * @type {Success}
-		 */
-		const success = {
-			id: 0,
-			station: station.id,
-			team: station.team,
-			type: 'conquest',
-			timestamp: result.initial_timestamp,
-		};
-		// apply initial conquest
-		station_conquest_dict[station.id] = success;
-	});
 	result.success_list.forEach(success => {
 		const conquest = station_conquest_dict[success.station];
 		// apply conquests and neutralizations

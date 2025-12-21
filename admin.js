@@ -15,7 +15,6 @@ import { lexicon } from './lexicon.js';
  * @property {number} id
  * @property {string} name
  * @property {string} code
- * @property {?number} team
  * @property {?number} place
  */
 
@@ -237,7 +236,6 @@ const station_div = document.getElementById('station-div');
 function station_render() {
 	const place_map = new Map(state.place_list.map(place => [place.id, place]));
 	const place_set = new Set(state.station_list.map(station => station.place).filter(place => place !== null));
-	const team_map = new Map(state.team_list.map(team => [team.id, team]));
 	// row
 	state.station_list.forEach(station => {
 		const element_list = [
@@ -250,10 +248,6 @@ function station_render() {
 				tag: 'code',
 				class: 'm-1',
 				content: station.code,
-			}),
-			n({
-				class: 'badge text-bg-info m-1',
-				content: station.team !== null ? team_map.get(station.team).name : '-',
 			}),
 			n({
 				class: 'badge text-bg-info m-1',
@@ -308,18 +302,6 @@ function station_render() {
 								name: 'code',
 								placeholder: lexicon.password,
 								required: true,
-							}),
-						],
-					}),
-					n({
-						class: 'flex-grow-1 m-1',
-						content: [
-							n({
-								tag: 'select',
-								class: 'form-select form-select-sm',
-								value: station.team?.toString(),
-								name: 'team',
-								content: n_option_list(state.team_list, `(${lexicon.team_initial})`),
 							}),
 						],
 					}),
@@ -393,7 +375,6 @@ const team_div = document.getElementById('team-div');
 function team_render() {
 	// row
 	state.team_list.forEach(team => {
-		const station_count = state.station_list.filter(station => station.team === team.id).length;
 		const player_count = state.player_list.filter(player => player.team === team.id).length;
 		const element_list = [
 			// row text
@@ -410,10 +391,7 @@ function team_render() {
 			}),
 			n({
 				class: 'm-1',
-				content: [
-					`${lexicon.station_list}: ${station_count}`,
-					`${lexicon.player_list}: ${player_count}`,
-				].join(' - '),
+				content: `${lexicon.player_list}: ${player_count}`,
 			}),
 			n({
 				class: 'd-flex flex-row',
@@ -429,7 +407,7 @@ function team_render() {
 					n({
 						tag: 'button',
 						class: 'btn btn-danger btn-sm m-1',
-						disabled: station_count !== 0 || player_count !== 0,
+						disabled: player_count !== 0,
 						click: async () => {
 							if (!confirm(`${lexicon.delete} ${team.name}${lexicon.question_mark}`))
 								return;

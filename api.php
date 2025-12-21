@@ -125,13 +125,13 @@ function place_station(int $place): ?int {
 
 function station_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `team`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	return stmt_list($stmt);
 }
 
 function station_with_code_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `team`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	return stmt_list($stmt);
 }
 
@@ -149,38 +149,26 @@ function station_matches(int $id, string $code): bool {
 	return stmt_bool($stmt);
 }
 
-// TODO remove initial station team
-
 function station_conqueror(int $station, DT $game_start, DT $game_stop): ?int {
 	global $db;
 	$game_start = $game_start->to_sql();
 	$game_stop = $game_stop->to_sql();
 	$stmt = $db->prepare('
-	(
 	SELECT IF(`success`.`type` = \'conquest\', `player`.`team`, NULL)
 	FROM `success`
 	LEFT JOIN `player` ON `player`.`id` = `success`.`player`
 	WHERE `success`.`station` = ? AND `success`.`dt` >= ? AND `success`.`dt` < ? AND `success`.`type` != \'simple\'
 	ORDER BY `success`.`dt` DESC, `success`.`id` DESC
 	LIMIT 1
-	)
-
-	UNION ALL
-
-	(
-	SELECT `team`
-	FROM `station`
-	WHERE `id` = ?
-	)
 	');
-	$stmt->bind_param('issi', $station, $game_start, $game_stop, $station);
+	$stmt->bind_param('iss', $station, $game_start, $game_stop);
 	return stmt_cell($stmt);
 }
 
-function station_update(int $id, string $name, string $code, ?int $team, ?int $place): void {
+function station_update(int $id, string $name, string $code, ?int $place): void {
 	global $db;
-	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `team` = ?, `place` = ? WHERE `id` = ?');
-	$stmt->bind_param('ssiii', $name, $code, $team, $place, $id);
+	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `place` = ? WHERE `id` = ?');
+	$stmt->bind_param('ssii', $name, $code, $place, $id);
 	$stmt->execute();
 	$stmt->close();
 }
@@ -210,13 +198,6 @@ function team_exists(int $id): bool {
 	$stmt = $db->prepare('SELECT `id` FROM `team` WHERE `id` = ?');
 	$stmt->bind_param('i', $id);
 	return stmt_bool($stmt);
-}
-
-function team_stations(int $id): ?int {
-	global $db;
-	$stmt = $db->prepare('SELECT COUNT(`id`) AS `stations` FROM `station` WHERE `team` = ?');
-	$stmt->bind_param('i', $id);
-	return stmt_cell($stmt);
 }
 
 function team_players(int $id): ?int {
@@ -513,14 +494,11 @@ if (is_post('station_update')) {
 		exit('id');
 	$name = post_string('name');
 	$code = post_string('code');
-	$team = post_int_nullable('team');
-	if (!is_null($team) && !team_exists($team))
-		exit('team');
 	$place = post_int_nullable('place');
 	$station_by_place = !is_null($place) ? place_station($place) : NULL;
 	if (!is_null($place) && !is_null($station_by_place) && $id !== $station_by_place)
 		exit('place');
-	station_update($id, $name, $code, $team, $place);
+	station_update($id, $name, $code, $place);
 	json([
 		'station_list' => station_with_code_list(),
 	]);
@@ -559,8 +537,6 @@ if (is_post('team_delete')) {
 		exit('password');
 	$id = post_int('id');
 	if (!team_exists($id))
-		exit('id');
-	if (team_stations($id) !== 0)
 		exit('id');
 	if (team_players($id) !== 0)
 		exit('id');

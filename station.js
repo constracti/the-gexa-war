@@ -201,17 +201,18 @@ function keyboard_render() {
 		keyboard_success_array.forEach(button => button.disabled = true);
 		return;
 	}
-	let conqueror = state.station.team;
-	state.success_list.forEach(success => {
+	/**
+	 * @type {?number}
+	 */
+	const conqueror = state.success_list.reduce((conqueror, success) => {
 		switch (success.type) {
 			case 'neutralization':
-				conqueror = null;
-				break;
+				return null;
 			case 'conquest':
-				conqueror = state.player_map.get(success.player).team;
-				break;
+				return state.player_map.get(success.player).team;
 		}
-	});
+		return conqueror;
+	}, null)
 	const team = state.team_map.get(state.player.team);
 	keyboard_alert.classList.add('alert-success');
 	keyboard_alert.classList.remove('alert-warning');
@@ -288,7 +289,7 @@ keyboard_success_array.forEach(button => {
 	});
 });
 
-document.getElementById('history-heading').innerHTML = lexicon.history;
+document.getElementById('history-heading').innerHTML = lexicon.success_history;
 
 /**
  * @type {HTMLDivElement}
@@ -296,43 +297,12 @@ document.getElementById('history-heading').innerHTML = lexicon.history;
 const history_div = document.getElementById('history-div');
 
 function history_render() {
-	(() => {
-		const team = state.team_map.get(state.station.team);
-		history_div.prepend(n({
-			class: 'list-group-item p-1 d-flex flex-column',
-			content: [
-				n({
-					class: 'd-flex flex-row align-items-center',
-					content: [
-						n({
-							class: 'badge text-bg-info m-1',
-							content: state.game_start.split(' ')[1],
-						}),
-						n({
-							class: 'flex-grow-1 m-1',
-							content: lexicon.team_initial,
-						}),
-					],
-				}),
-				n({
-					class: 'd-flex flex-row align-items-center',
-					content: [
-						team ? n({
-							class: 'badge border m-1',
-							style: {
-								backgroundColor: team.color,
-								color: textColor(team.color),
-							},
-							content: team.name,
-						}) : n({
-							class: 'badge text-bg-info m-1',
-							content: '-',
-						}),
-					],
-				}),
-			],
+	if (state.success_list.length === 0) {
+		history_div.append(n({
+			class: 'list-group-item list-group-item-warning p-2',
+			content: lexicon.success_empty,
 		}));
-	})();
+	}
 	state.success_list.forEach((success, index, array) => {
 		const player = state.player_map.get(success.player);
 		const team = state.team_map.get(player.team);

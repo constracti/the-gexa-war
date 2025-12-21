@@ -6,8 +6,7 @@ import { lexicon } from './lexicon.js';
  * @type {object}
  * @property {number} id
  * @property {string} name
- * @property {?number} team
- * @property {?number} station
+ * @property {?number} place
  */
 
 /**
