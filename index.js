@@ -72,6 +72,11 @@ document.getElementById('map').addEventListener('click', () => {
 /**
  * @type {HTMLDivElement}
  */
+const time_div = document.getElementById('time-div');
+
+/**
+ * @type {HTMLDivElement}
+ */
 const score_section = document.getElementById('score-section');
 
 /**
@@ -83,6 +88,11 @@ const success_section = document.getElementById('success-section');
  * @type {HTMLDivElement}
  */
 const place_popup = document.getElementById('place-popup');
+
+/**
+ * @type {HTMLDivElement}
+ */
+const alert_popup = document.getElementById('alert-popup');
 
 /**
  * @param {?number} place - null keeps selection, zero nullifies selection
@@ -105,7 +115,7 @@ function place_select(place) {
 			const conquest = state.station_conquest_map.get(station.id);
 			const team = conquest !== null ? state.team_map.get(conquest.team) : null;
 			place_popup.append(n({
-				class: 'border rounded text-bg-dark d-flex flex-row p-1',
+				class: 'm-2 alert alert-dark d-flex flex-row align-items-center p-1',
 				content: [
 					n({
 						class: 'm-1',
@@ -144,7 +154,7 @@ const place_svg_map = await (async () => {
 	 * @type {{place_list: [{id: number, name: string, content: string, top: number, left: number, width: number}]}}
 	 */
 	const result = await api.get('map');
-	console.log(result);
+	console.log(result); // TODO delete
 	return new Map(result.place_list.map(place => {
 		/**
 		 * @param {number} id
@@ -251,7 +261,18 @@ async function refresh() {
 			return `#canvas #place-svg-${station.place} ${tag} { stroke: ${team.color}; fill: ${team.color}; }`;
 		}).join('\n');
 	}).join('\n');
-	// team section
+	// time // TODO countdown
+	time_div.classList.remove('d-none');
+	if (result.game_state === 'pending')
+		time_div.innerHTML = `${lexicon.game_start}: ${result.game_start.split(' ')[1]}`;
+	else
+		time_div.innerHTML = `${lexicon.game_stop}: ${result.game_stop.split(' ')[1]}`;
+	alert_popup.classList.add('d-none');
+	if (result.game_state !== 'running') {
+		alert_popup.classList.remove('d-none');
+		alert_popup.innerHTML = result.game_state === 'pending' ? lexicon.game_pending : lexicon.game_finished;
+	}
+	// team
 	score_section.innerHTML = '';
 	if (result.team_list.length !== 0) {
 		score_section.append(
@@ -292,7 +313,7 @@ async function refresh() {
 			}),
 		);
 	}
-	// success section
+	// success
 	success_section.innerHTML = '';
 	if (result.success_list.length !== 0) {
 		success_section.append(
@@ -349,7 +370,6 @@ async function refresh() {
 		);
 	}
 	setTimeout(refresh, 10000);
-	// TODO game end time and status
 }
 
 refresh();
