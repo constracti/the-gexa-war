@@ -42,32 +42,133 @@ import { lexicon } from './lexicon.js';
  */
 
 /**
+ * @typedef State
+ * @type {object}
+ * @property {Map<number, Station} place_station_map
+ * @property {Map<number, ?Success} station_conquest_map
+ * @property {Map<number, Team>} team_map
+ * @property {?number} selected_place
+ */
+
+/**
+ * @type {?State}
+ */
+let state = null;
+
+/**
+ * @type {HTMLStyleElement}
+ */
+const style = document.getElementById('style');
+
+/**
  * @type {HTMLDivElement}
  */
 const spinner_div = document.getElementById('spinner-div');
 
-/**
- * @type {HTMLDivElement}
- */
-const alert_div = document.getElementById('alert-div');
+document.getElementById('map').addEventListener('click', () => {
+	place_select(0);
+});
 
 /**
  * @type {HTMLDivElement}
  */
-const station_list = document.getElementById('station-list');
-station_list.previousElementSibling.innerHTML = lexicon.station_list;
+const score_section = document.getElementById('score-section');
 
 /**
  * @type {HTMLDivElement}
  */
-const team_list = document.getElementById('team-list');
-team_list.previousElementSibling.innerHTML = lexicon.team_list;
+const success_section = document.getElementById('success-section');
 
 /**
  * @type {HTMLDivElement}
  */
-const success_list = document.getElementById('success-list');
-success_list.previousElementSibling.innerHTML = lexicon.success_recent;
+const place_popup = document.getElementById('place-popup');
+
+/**
+ * @param {?number} place - null keeps selection, zero nullifies selection
+ */
+function place_select(place) {
+	place_popup.innerHTML = '';
+	place_svg_map.forEach(place_svg => place_svg.classList.remove('place-selected'));
+	if (state === null)
+		return;
+	if (place !== null) {
+		if (place !== 0)
+			state.selected_place = place;
+		else
+			state.selected_place = null;
+	}
+	if (state.selected_place !== null) {
+		place_svg_map.get(state.selected_place).classList.add('place-selected');
+		const station = state.place_station_map.get(state.selected_place) ?? null;
+		if (station !== null) {
+			const conquest = state.station_conquest_map.get(station.id);
+			const team = conquest !== null ? state.team_map.get(conquest.team) : null;
+			place_popup.append(n({
+				class: 'border rounded text-bg-dark d-flex flex-row p-1',
+				content: [
+					n({
+						class: 'm-1',
+						content: station.name,
+					}),
+					team !== null ? n({
+						class: 'badge border m-1',
+						style: {
+							backgroundColor: team.color,
+							color: textColor(team.color),
+						},
+						content: team.name,
+					}) : n({}),
+					n({
+						tag: 'button',
+						class: 'btn-close m-1',
+						click: () => {
+							place_select(0);
+						},
+					}),
+				],
+			}));
+		}
+	}
+}
+
+/**
+ * @type {HTMLDivElement}
+ */
+const canvas = document.getElementById('canvas');
+
+// TODO responsive
+
+const place_svg_map = await (async () => {
+	/**
+	 * @type {{place_list: [{id: number, name: string, content: string, top: number, left: number, width: number}]}}
+	 */
+	const result = await api.get('map');
+	console.log(result);
+	return new Map(result.place_list.map(place => {
+		/**
+		 * @param {number} id
+		 * @param {string} content
+		 * @returns {SVGElement}
+		 */
+		function svg(id, content) {
+			const template = document.createElement('template');
+			template.innerHTML = content.replace(/(cls-\d)/g, '$1-id-' + id); // make class names unique
+			return template.content.firstElementChild;
+		}
+		const place_svg = svg(place.id, place.content);
+		place_svg.id = `place-svg-${place.id}`;
+		place_svg.style.position = 'absolute';
+		place_svg.style.top = `${100 * place.top}%`;
+		place_svg.style.left = `${100 * place.left}%`;
+		place_svg.style.width = `${100 * place.width}%`;
+		place_svg.addEventListener('click', () => {
+			place_select(place.id);
+		});
+		canvas.append(place_svg);
+		return [place.id, place_svg];
+	}));
+})();
 
 async function refresh() {
 	spinner_div.classList.remove('d-none');
@@ -77,22 +178,15 @@ async function refresh() {
 	const result = await api.get('game');
 	spinner_div.classList.add('d-none');
 	console.log(result); // TODO delete
-	if (result.game_state === 'pending')
-		alert_div.innerHTML = `${lexicon.game_start}: ${result.game_start.split(' ')[1]}`;
-	else
-		alert_div.innerHTML = `${lexicon.game_stop}: ${result.game_stop.split(' ')[1]}`;
-	/**
-	 * @type {Map<number, Station>}
-	 */
+	state = {
+		place_station_map: new Map(result.station_list.filter(station => station.place !== null).map(station => [station.place, station])),
+		station_conquest_map: new Map(result.station_list.map(station => [station.id, null])),
+		team_map: new Map(result.team_list.map(team => [team.id, team])),
+		selected_place: state !== null ? state.selected_place : null,
+	};
 	const station_map = new Map(result.station_list.map(station => [station.id, station]));
-	/**
-	 * @type {Map<number, Team>}
-	 */
-	const team_map = new Map(result.team_list.map(team => [team.id, team]));
-	/**
-	 * @type {{[k: number]: number}}
-	 */
-	const team_score_dict = Object.fromEntries(result.team_list.map(team => [team.id, 0]));
+	// score
+	const team_score_map = new Map(result.team_list.map(team => [team.id, 0]));
 	/**
 	 * @param {number} current_timestamp success timestamp in seconds
 	 * @returns {number}
@@ -112,129 +206,150 @@ async function refresh() {
 		const mean_value = 1 + result.reward_rate / 3600 * (mean_timestamp - result.initial_timestamp);
 		return result.reward_conquest / 60 * mean_value * duration;
 	}
-	/**
-	 * @type {{[k: number]: ?Success}}
-	 */
-	const station_conquest_dict = Object.fromEntries(result.station_list.map(station => [station.id, null]));
+	// score from successes and previous conquests
 	result.success_list.forEach(success => {
-		const conquest = station_conquest_dict[success.station];
-		// apply conquests and neutralizations
-		switch (success.type) {
-			case 'neutralization':
-				if (conquest !== null) {
-					team_score_dict[conquest.team] += team_score_conquest(conquest.timestamp, success.timestamp);
-					station_conquest_dict[success.station] = null;
-				}
-				break;
-			case 'conquest':
-				if (conquest !== null) {
-					team_score_dict[conquest.team] += team_score_conquest(conquest.timestamp, success.timestamp);
-				}
-				station_conquest_dict[success.station] = success;
-				break;
+		const conquest = state.station_conquest_map.get(success.station);
+		if (success.type !== 'simple') {
+			// add points to previous conqueror
+			if (conquest !== null) {
+				const conquest_score = team_score_conquest(conquest.timestamp, success.timestamp);
+				team_score_map.set(conquest.team, team_score_map.get(conquest.team) + conquest_score);
+			}
+			// set current conqueror
+			if (success.type === 'conquest')
+				state.station_conquest_map.set(success.station, success);
+			else
+				state.station_conquest_map.set(success.station, null);
 		}
-		// add success score
-		team_score_dict[success.team] += team_score_success(success.timestamp);
+		// add success points
+		team_score_map.set(success.team, team_score_map.get(success.team) + team_score_success(success.timestamp));
 	});
-	station_list.innerHTML = '';
+	// score from current conquests
 	result.station_list.forEach(station => {
-		const conquest = station_conquest_dict[station.id];
-		const team = conquest !== null ? team_map.get(conquest.team) : null;
-		station_list.appendChild(n({
-			class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
-			content: [
-				n({
-					class: 'm-1',
-					content: station.name,
-				}),
-				team !== null ? n({
-					class: 'badge border m-1',
-					style: {
-						backgroundColor: team.color,
-						color: textColor(team.color),
-					},
-					content: team.name,
-				}) : n({
-					class: 'm-0',
-				}),
-			],
-		}));
-		// add present conquest
-		if (conquest !== null) {
-			team_score_dict[conquest.team] += team_score_conquest(conquest.timestamp, result.current_timestamp);
-			station_conquest_dict[station.id] = null;
+		const conquest = state.station_conquest_map.get(station.id);
+		if (conquest === null)
+			return;
+		const conquest_score = team_score_conquest(conquest.timestamp, result.current_timestamp);
+		team_score_map.set(conquest.team, team_score_map.get(conquest.team) + conquest_score);
+	});
+	// score normalization
+	result.team_list.forEach(team => {
+		if (team.players > 0) {
+			team_score_map.set(team.id, team_score_map.get(team.id) / team.players);
 		}
 	});
-	// normalize score
-	result.team_list.forEach(team => {
-		if (team.players > 0)
-			team_score_dict[team.id] /= team.players;
-	});
-	team_list.innerHTML = '';
-	result.team_list.toSorted((lhs, rhs) => {
-		return -(team_score_dict[lhs.id] - team_score_dict[rhs.id]); // sort by score in descending order
-	}).forEach(team => {
-		team_list.appendChild(n({
-			class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
-			content: [
-				n({
-					class: 'badge border m-1',
-					style: {
-						backgroundColor: team.color,
-						color: textColor(team.color),
-					},
-					content: team.name,
-				}),
-				n({
-					class: 'm-1',
-					content: `${team_score_dict[team.id].toFixed(0)}`,
-				}),
-			],
-		}));
-	});
-	success_list.innerHTML = '';
-	if (result.game_state !== 'running') {
-		success_list.append(n({
-			class: 'list-group-item list-group-item-warning p-2',
-			content: result.game_state === 'pending' ? lexicon.game_pending : lexicon.game_finished,
-		}));
-	} else {
-		result.success_list.filter(success => {
-			return result.current_timestamp - success.timestamp < 1e6; // TODO how old? in seconds - also, how many?
-		}).sort((lhs, rhs) => {
-			return -(lhs.timestamp - rhs.timestamp); // sort by timstamp in descending order
-		}).forEach(success => {
-			const station = station_map.get(success.station);
-			const team = team_map.get(success.team);
-			const type = success.type === 'conquest' ? lexicon.success_conquest :
-				(success.type === 'neutralization' ? lexicon.success_neutralization : lexicon.success_simple);
-			success_list.appendChild(n({
-				class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
+	// style
+	place_select(null);
+	style.innerHTML = result.station_list.map(station => {
+		if (station.place === null)
+			return '';
+		const conquest = state.station_conquest_map.get(station.id);
+		if (conquest === null)
+			return '';
+		const team = state.team_map.get(conquest.team);
+		return ['path', 'polygon', '>g>rect'].map(tag => {
+			return `#canvas #place-svg-${station.place} ${tag} { stroke: ${team.color}; fill: ${team.color}; }`;
+		}).join('\n');
+	}).join('\n');
+	// team section
+	score_section.innerHTML = '';
+	if (result.team_list.length !== 0) {
+		score_section.append(
+			n({
+				tag: 'h2',
+				class: 'm-2',
+				content: lexicon.score,
+			}),
+			n({
+				class: 'flex-fill',
+				style: {
+					overflowY: 'auto',
+				},
 				content: [
 					n({
-						class: 'm-1',
-						content: `${type} ${lexicon.at} ${station.name}`,
-					}),
-					n({
-						class: 'badge border m-1',
-						style: {
-							backgroundColor: team.color,
-							color: textColor(team.color),
-						},
-						content: team.name,
+						class: 'list-group',
+						content: result.team_list.toSorted((lhs, rhs) => {
+							return -(team_score_map.get(lhs.id) - team_score_map.get(rhs.id)); // sort by score in descending order
+						}).map(team => n({
+							class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
+							content: [
+								n({
+									class: 'badge border m-1',
+									style: {
+										backgroundColor: team.color,
+										color: textColor(team.color),
+									},
+									content: team.name,
+								}),
+								n({
+									class: 'm-1',
+									content: team_score_map.get(team.id).toFixed(0), // TODO also as horizontal bars
+								}),
+							],
+						})),
 					}),
 				],
-			}));
-		});
-		if (success_list.childElementCount === 0) {
-			success_list.append(n({
-				class: 'list-group-item p-2',
-				content: '-',
-			}));
-		}
+			}),
+		);
 	}
-	if (result.game_state !== 'finished')
-		setTimeout(refresh, 10000); // TODO delay
+	// success section
+	success_section.innerHTML = '';
+	if (result.success_list.length !== 0) {
+		success_section.append(
+			n({
+				tag: 'h2',
+				class: 'm-2',
+				content: lexicon.success_list,
+			}),
+			n({
+				class: 'flex-fill',
+				style: {
+					overflowY: 'auto',
+				},
+				content: [
+					n({
+						class: 'list-group',
+						content: result.success_list.toSorted((lhs, rhs) => {
+							return -(lhs.timestamp - rhs.timestamp); // sort by timestamp in descending order
+						}).map(success => {
+							const station = station_map.get(success.station);
+							const team = state.team_map.get(success.team);
+							const type = success.type === 'conquest' ? lexicon.success_conquest :
+								(success.type === 'neutralization' ? lexicon.success_neutralization : lexicon.success_simple);
+							return n({
+								class: 'list-group-item d-flex flex-column p-1',
+								content: [
+									n({
+										class: 'm-1',
+										content: type,
+									}),
+									n({
+										class: 'd-flex flex-row justify-content-between align-items-center',
+										content: [
+											n({
+												class: 'm-1',
+												content: station.name,
+											}),
+											n({
+												class: 'badge border m-1',
+												style: {
+													backgroundColor: team.color,
+													color: textColor(team.color),
+												},
+												content: team.name,
+											}),
+										],
+									})
+								],
+							});
+						}),
+					}),
+				],
+			}),
+		);
+	}
+	setTimeout(refresh, 10000);
+	// TODO game end time and status
 }
 
 refresh();

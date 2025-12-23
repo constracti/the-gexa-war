@@ -728,6 +728,12 @@ if (is_post('success_delete')) {
 	]);
 }
 
+if (is_get('map')) {
+	json([
+		'place_list' => place_with_content_list(),
+	]);
+}
+
 if (is_get('game')) {
 	$game_start = config_get_game_start();
 	$game_stop = config_get_game_stop();

@@ -6,19 +6,66 @@
 		<meta name="author" content="constracti">
 		<title></title>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+		<style>
+			#canvas {
+				position: relative;
+				max-width: 1600px;
+				margin: auto;
+			}
+			#canvas #map {
+				width: 100%;
+			}
+			#canvas svg {
+				overflow: visible;
+			}
+			#canvas svg path { fill: white; }
+			#canvas svg polygon { fill: white; }
+			#canvas svg >g>rect { fill: white; }
+			#canvas svg path,
+			#canvas svg polygon,
+			#canvas svg >g>rect {
+				fill-opacity: 0.5;
+				vector-effect: non-scaling-stroke;
+			}
+			#canvas svg.place-selected path,
+			#canvas svg.place-selected polygon,
+			#canvas svg.place-selected>g>rect {
+				fill-opacity: 0.75;
+			}
+			#canvas #place-popup {
+				position: absolute;
+				top: 0%;
+				left: 0%;
+				z-index: 1;
+			}
+			#canvas #team-section {
+				position: absolute;
+				top: 10%;
+				left: 0%;
+				height: 90%;
+				width: 20%;
+			}
+			#canvas #success-section {
+				position: absolute;
+				top: 10%;
+				left: 78.7%;
+				height: 90%;
+				width: 20%;
+			}
+		</style>
+		<style id="style"></style>
 	</head>
-	<body class="container d-flex flex-column p-2">
-		<div class="d-flex flex-row justify-content-between align-items-center">
+	<body class="d-flex flex-column">
+		<div class="d-flex flex-row justify-content-between align-items-center p-2">
 			<h1 class="m-2"></h1>
 			<div class="spinner-border m-2 d-none" id="spinner-div"></div>
 		</div>
-		<div class="alert alert-info m-2" id="alert-div"></div>
-		<h2 class="m-2"></h2>
-		<div class="list-group m-2" id="station-list"></div>
-		<h2 class="m-2"></h2>
-		<div class="list-group m-2" id="team-list"></div>
-		<h2 class="m-2"></h2>
-		<div class="list-group m-2" id="success-list"></div>
+		<div id="canvas">
+			<img src="map.jpg" id="map">
+			<div class="d-flex flex-column p-2" id="place-popup"></div>
+			<div class="d-flex flex-column p-2" id="score-section"></div>
+			<div class="d-flex flex-column p-2" id="success-section"></div>
+		</div>
 		<script src="/color-mode.js"></script>
 		<script type="module" src="./index.js"></script>
 	</body>
