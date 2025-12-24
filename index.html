@@ -6,93 +6,15 @@
 		<meta name="author" content="constracti">
 		<title></title>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
-		<style>
-			@font-face {
-				font-family: Synch;
-				src: url(fonts/PFSynchPro-Regular.ttf);
-				font-weight: normal;
-			}
-			@font-face {
-				font-family: Synch;
-				src: url(fonts/PFSynchPro-Bold.ttf);
-				font-weight: bold;
-			}
-			:root {
-				--bs-body-font-family: Synch;
-			}
-			#canvas {
-				position: relative;
-				max-width: 1600px;
-				margin: auto;
-			}
-			#canvas #map {
-				width: 100%;
-			}
-			#canvas svg {
-				overflow: visible;
-			}
-			#canvas svg path { fill: white; }
-			#canvas svg polygon { fill: white; }
-			#canvas svg >g>rect { fill: white; }
-			#canvas svg path,
-			#canvas svg polygon,
-			#canvas svg >g>rect {
-				fill-opacity: 0.5;
-				vector-effect: non-scaling-stroke;
-			}
-			#canvas svg.place-selected path,
-			#canvas svg.place-selected polygon,
-			#canvas svg.place-selected >g>rect {
-				fill-opacity: 0.75;
-			}
-			#canvas #heading-section {
-				position: absolute;
-				top: 0%;
-				left: 0%;
-			}
-			#canvas #spinner-section {
-				position: absolute;
-				top: 0%;
-				right: 1.3%;
-			}
-			#canvas #score-section {
-				position: absolute;
-				top: 10%;
-				left: 0%;
-				height: 90%;
-				width: 20%;
-			}
-			#canvas #recent-section {
-				position: absolute;
-				top: 10%;
-				right: 1.3%;
-				height: 90%;
-				width: 20%;
-			}
-			#canvas #place-popup {
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
-				z-index: 1;
-			}
-			#canvas .alert {
-				background-color: rgb(from var(--bs-alert-bg) r g b / 50%);
-			}
-			#canvas #place-popup .alert {
-				background-color: rgb(from var(--bs-alert-bg) r g b / 90%);
-			}
-			#canvas .list-group-item {
-				background-color: rgb(from var(--bs-list-group-bg) r g b / 50%);
-			}
-		</style>
+		<link rel="stylesheet" href="font-family.css">
+		<link rel="stylesheet" href="index.css">
 		<style id="style"></style>
 	</head>
 	<body class="d-flex flex-column">
 		<div id="canvas">
 			<img src="map.jpg" id="map">
 			<div class="p-2" id="heading-section">
-				<h1 class="m-2"></h1>
+				<h1 class="m-2 fw-bold"></h1>
 			</div>
 			<div class="d-flex flex-row align-items-center p-2" id="spinner-section">
 				<div class="spinner-border m-2 d-none" id="spinner-div"></div>
