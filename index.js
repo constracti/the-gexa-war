@@ -182,7 +182,6 @@ const place_svg_map = await (async () => {
 	 * @type {{place_list: [{id: number, name: string, content: string, top: number, left: number, width: number}]}}
 	 */
 	const result = await api.get('map');
-	console.log(result); // TODO delete
 	return new Map(result.place_list.map(place => {
 		/**
 		 * @param {number} id
@@ -215,7 +214,6 @@ async function refresh() {
 	 */
 	const result = await api.get('game');
 	spinner_div.classList.add('d-none');
-	console.log(result); // TODO delete
 	if (state !== null)
 		clearInterval(state.timer);
 	const ms_refresh = Date.now();
@@ -301,6 +299,7 @@ async function refresh() {
 	// team
 	score_section.innerHTML = '';
 	if (result.team_list.length !== 0) {
+		const max_score = Math.max(...team_score_map.values(), 1);
 		score_section.append(
 			n({
 				tag: 'h2',
@@ -318,19 +317,36 @@ async function refresh() {
 						content: result.team_list.toSorted((lhs, rhs) => {
 							return -(team_score_map.get(lhs.id) - team_score_map.get(rhs.id)); // sort by score in descending order
 						}).map(team => n({
-							class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
+							class: 'list-group-item d-flex flex-column p-1',
 							content: [
 								n({
-									class: 'badge border m-1',
-									style: {
-										backgroundColor: team.color,
-										color: textColor(team.color),
-									},
-									content: team.name,
+									class: 'border m-1',
+									content: [
+										n({
+											class: 'pb-1',
+											style: {
+												backgroundColor: team.color,
+												width: `${team_score_map.get(team.id) / max_score * 100}%`,
+											},
+										}),
+									],
 								}),
 								n({
-									class: 'm-1',
-									content: team_score_map.get(team.id).toFixed(), // TODO also as horizontal bars
+									class: 'd-flex flex-row flex-wrap align-items-center',
+									content: [
+										n({
+											class: 'badge border m-1',
+											style: {
+												backgroundColor: team.color,
+												color: textColor(team.color),
+											},
+											content: team.name,
+										}),
+										n({
+											class: 'flex-grow-1 text-end m-1',
+											content: team_score_map.get(team.id).toFixed(),
+										}),
+									],
 								}),
 							],
 						})),
@@ -371,10 +387,10 @@ async function refresh() {
 										content: type,
 									}),
 									n({
-										class: 'd-flex flex-row justify-content-between align-items-center',
+										class: 'd-flex flex-row flex-wrap justify-content-end align-items-center',
 										content: [
 											n({
-												class: 'm-1',
+												class: 'flex-grow-1 m-1',
 												content: station.name,
 											}),
 											n({
