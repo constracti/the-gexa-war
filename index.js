@@ -28,11 +28,9 @@ import { lexicon } from './lexicon.js';
 /**
  * @typedef Game
  * @type {object}
- * @property {string} game_start
- * @property {string} game_stop
- * @property {string} game_state
- * @property {number} initial_timestamp
- * @property {number} current_timestamp
+ * @property {number} time_start
+ * @property {number} time_stop
+ * @property {number} time_now
  * @property {number} reward_success
  * @property {number} reward_conquest
  * @property {number} reward_rate
@@ -47,6 +45,7 @@ import { lexicon } from './lexicon.js';
  * @property {Map<number, Station} place_station_map
  * @property {Map<number, ?Success} station_conquest_map
  * @property {Map<number, Team>} team_map
+ * @property {number} timer
  * @property {?number} selected_place
  */
 
@@ -75,6 +74,40 @@ document.getElementById('map').addEventListener('click', () => {
 const time_div = document.getElementById('time-div');
 
 /**
+ * @param {number} seconds
+ * @returns {string}
+ * @throws {RangeError}
+ */
+function human_duration(seconds) {
+	if (seconds < 0)
+		throw new RangeError();
+	seconds = Math.floor(seconds);
+	let minutes = Math.floor(seconds / 60);
+	seconds -= minutes * 60;
+	let hours = Math.floor(minutes / 60);
+	minutes -= hours * 60;
+	return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+/**
+ * 
+ * @param {number} time_start
+ * @param {number} time_stop
+ * @param {number} time_now
+ * @param {number} ms_refresh
+ */
+function timer_tick(time_start, time_stop, time_now, ms_refresh) {
+	const ms_current = Date.now();
+	time_now += Math.round((ms_current - ms_refresh) / 1000);
+	if (time_now < time_start)
+		time_div.innerHTML = `${lexicon.game_start}: ${human_duration(time_start - time_now)}`;
+	else if (time_now < time_stop)
+		time_div.innerHTML = `${lexicon.game_stop}: ${human_duration(time_stop - time_now)}`;
+	else
+		time_div.innerHTML = lexicon.game_finished;
+}
+
+/**
  * @type {HTMLDivElement}
  */
 const score_section = document.getElementById('score-section');
@@ -88,11 +121,6 @@ const success_section = document.getElementById('success-section');
  * @type {HTMLDivElement}
  */
 const place_popup = document.getElementById('place-popup');
-
-/**
- * @type {HTMLDivElement}
- */
-const alert_popup = document.getElementById('alert-popup');
 
 /**
  * @param {?number} place - null keeps selection, zero nullifies selection
@@ -188,21 +216,27 @@ async function refresh() {
 	const result = await api.get('game');
 	spinner_div.classList.add('d-none');
 	console.log(result); // TODO delete
+	if (state !== null)
+		clearInterval(state.timer);
+	const ms_refresh = Date.now();
 	state = {
 		place_station_map: new Map(result.station_list.filter(station => station.place !== null).map(station => [station.place, station])),
 		station_conquest_map: new Map(result.station_list.map(station => [station.id, null])),
 		team_map: new Map(result.team_list.map(team => [team.id, team])),
+		timer: setInterval(timer_tick, 1000, result.time_start, result.time_stop, result.time_now, ms_refresh),
 		selected_place: state !== null ? state.selected_place : null,
 	};
+	const current_timestamp = result.time_now < result.time_start ? result.time_start :
+		(result.time_now < result.time_stop ? result.time_now : result.time_stop);
 	const station_map = new Map(result.station_list.map(station => [station.id, station]));
 	// score
 	const team_score_map = new Map(result.team_list.map(team => [team.id, 0]));
 	/**
-	 * @param {number} current_timestamp success timestamp in seconds
+	 * @param {number} success_timestamp success timestamp in seconds
 	 * @returns {number}
 	 */
-	function team_score_success(current_timestamp) {
-		const current_value = 1 + result.reward_rate / 3600 * (current_timestamp - result.initial_timestamp);
+	function team_score_success(success_timestamp) {
+		const current_value = 1 + result.reward_rate / 3600 * (success_timestamp - result.time_start);
 		return result.reward_success * current_value;
 	}
 	/**
@@ -213,7 +247,7 @@ async function refresh() {
 	function team_score_conquest(start_timestamp, stop_timestamp) {
 		const duration = stop_timestamp - start_timestamp // seconds
 		const mean_timestamp = (start_timestamp + stop_timestamp) / 2 // seconds
-		const mean_value = 1 + result.reward_rate / 3600 * (mean_timestamp - result.initial_timestamp);
+		const mean_value = 1 + result.reward_rate / 3600 * (mean_timestamp - result.time_start);
 		return result.reward_conquest / 60 * mean_value * duration;
 	}
 	// score from successes and previous conquests
@@ -239,7 +273,7 @@ async function refresh() {
 		const conquest = state.station_conquest_map.get(station.id);
 		if (conquest === null)
 			return;
-		const conquest_score = team_score_conquest(conquest.timestamp, result.current_timestamp);
+		const conquest_score = team_score_conquest(conquest.timestamp, current_timestamp);
 		team_score_map.set(conquest.team, team_score_map.get(conquest.team) + conquest_score);
 	});
 	// score normalization
@@ -261,17 +295,9 @@ async function refresh() {
 			return `#canvas #place-svg-${station.place} ${tag} { stroke: ${team.color}; fill: ${team.color}; }`;
 		}).join('\n');
 	}).join('\n');
-	// time // TODO countdown
+	// time
 	time_div.classList.remove('d-none');
-	if (result.game_state === 'pending')
-		time_div.innerHTML = `${lexicon.game_start}: ${result.game_start.split(' ')[1]}`;
-	else
-		time_div.innerHTML = `${lexicon.game_stop}: ${result.game_stop.split(' ')[1]}`;
-	alert_popup.classList.add('d-none');
-	if (result.game_state !== 'running') {
-		alert_popup.classList.remove('d-none');
-		alert_popup.innerHTML = result.game_state === 'pending' ? lexicon.game_pending : lexicon.game_finished;
-	}
+	timer_tick(result.time_start, result.time_stop, result.time_now, ms_refresh);
 	// team
 	score_section.innerHTML = '';
 	if (result.team_list.length !== 0) {
@@ -304,7 +330,7 @@ async function refresh() {
 								}),
 								n({
 									class: 'm-1',
-									content: team_score_map.get(team.id).toFixed(0), // TODO also as horizontal bars
+									content: team_score_map.get(team.id).toFixed(), // TODO also as horizontal bars
 								}),
 							],
 						})),

@@ -746,11 +746,9 @@ if (is_get('game')) {
 	else
 		$timestamp = $now->to_int();
 	json([
-		'game_start' => $game_start->to_sql(),
-		'game_stop' => $game_stop->to_sql(),
-		'game_state' => $game_state,
-		'initial_timestamp' => $game_start->to_int(),
-		'current_timestamp' => $timestamp,
+		'time_start' => $game_start->to_int(),
+		'time_stop' => $game_stop->to_int(),
+		'time_now' => $now->to_int(),
 		'reward_success' => config_get_reward_success(),
 		'reward_conquest' => config_get_reward_conquest(),
 		'reward_rate' => config_get_reward_rate(),
