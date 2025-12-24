@@ -32,10 +32,13 @@
 	top: 0%;
 	left: 0%;
 }
-#canvas #spinner-section {
+#canvas #status-section {
 	position: absolute;
 	top: 0%;
 	right: 1.3%;
+}
+#canvas #status-section #time-div {
+	order: 1;
 }
 #canvas #score-section {
 	position: absolute;
@@ -50,6 +53,9 @@
 	right: 1.3%;
 	height: 90%;
 	width: 20%;
+}
+#canvas #recent-section h2 {
+	text-align: end;
 }
 #canvas #place-popup {
 	position: absolute;

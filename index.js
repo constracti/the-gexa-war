@@ -62,6 +62,16 @@ const style = document.getElementById('style');
 /**
  * @type {HTMLDivElement}
  */
+const heading_section = document.getElementById('heading-section');
+
+/**
+ * @type {HTMLDivElement}
+ */
+const status_section = document.getElementById('status-section');
+
+/**
+ * @type {HTMLDivElement}
+ */
 const spinner_div = document.getElementById('spinner-div');
 
 document.getElementById('map').addEventListener('click', () => {
@@ -187,7 +197,38 @@ function place_select(place) {
  */
 const canvas = document.getElementById('canvas');
 
-// TODO responsive
+/**
+ * @type {HTMLDivElement}
+ */
+const header_div = document.getElementById('header-div');
+
+/**
+ * @type {HTMLDivElement}
+ */
+const footer_div = document.getElementById('footer-div');
+
+function responsive() {
+	if (screen.availWidth >= 768) {
+		header_div.classList.remove('p-2');
+		heading_section.classList.add('p-2');
+		status_section.classList.add('p-2');
+		footer_div.classList.remove('p-2');
+		score_section.classList.add('p-2');
+		recent_section.classList.add('p-2');
+		canvas.append(heading_section, status_section, score_section, recent_section);
+	} else {
+		header_div.append(heading_section, status_section);
+		header_div.classList.add('p-2');
+		heading_section.classList.remove('p-2');
+		status_section.classList.remove('p-2');
+		footer_div.append(score_section, recent_section);
+		footer_div.classList.add('p-2');
+		score_section.classList.remove('p-2');
+		recent_section.classList.remove('p-2');
+	}
+}
+addEventListener('resize', responsive);
+responsive();
 
 const place_svg_map = await (async () => {
 	/**
