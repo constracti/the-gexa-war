@@ -111,11 +111,23 @@ function timer_tick(time_start, time_stop, time_now, ms_refresh) {
  * @type {HTMLDivElement}
  */
 const score_section = document.getElementById('score-section');
+score_section.firstElementChild.innerHTML = lexicon.score;
 
 /**
  * @type {HTMLDivElement}
  */
-const success_section = document.getElementById('success-section');
+const score_list = document.getElementById('score-list');
+
+/**
+ * @type {HTMLDivElement}
+ */
+const recent_section = document.getElementById('recent-section');
+recent_section.firstElementChild.innerHTML = lexicon.success_list;
+
+/**
+ * @type {HTMLDivElement}
+ */
+const recent_list = document.getElementById('recent-list');
 
 /**
  * @type {HTMLDivElement}
@@ -297,119 +309,91 @@ async function refresh() {
 	time_div.classList.remove('d-none');
 	timer_tick(result.time_start, result.time_stop, result.time_now, ms_refresh);
 	// team
-	score_section.innerHTML = '';
+	score_list.innerHTML = '';
 	if (result.team_list.length !== 0) {
 		const max_score = Math.max(...team_score_map.values(), 1);
-		score_section.append(
-			n({
-				tag: 'h2',
-				class: 'm-2',
-				content: lexicon.score,
-			}),
-			n({
-				class: 'flex-fill',
-				style: {
-					overflowY: 'auto',
-				},
-				content: [
-					n({
-						class: 'list-group',
-						content: result.team_list.toSorted((lhs, rhs) => {
-							return -(team_score_map.get(lhs.id) - team_score_map.get(rhs.id)); // sort by score in descending order
-						}).map(team => n({
-							class: 'list-group-item d-flex flex-column p-1',
-							content: [
-								n({
-									class: 'border m-1',
-									content: [
-										n({
-											class: 'pb-1',
-											style: {
-												backgroundColor: team.color,
-												width: `${team_score_map.get(team.id) / max_score * 100}%`,
-											},
-										}),
-									],
-								}),
-								n({
-									class: 'd-flex flex-row flex-wrap align-items-center',
-									content: [
-										n({
-											class: 'badge border m-1',
-											style: {
-												backgroundColor: team.color,
-												color: textColor(team.color),
-											},
-											content: team.name,
-										}),
-										n({
-											class: 'flex-grow-1 text-end m-1',
-											content: team_score_map.get(team.id).toFixed(),
-										}),
-									],
-								}),
-							],
-						})),
-					}),
-				],
-			}),
-		);
+		const team_list = result.team_list.toSorted((lhs, rhs) => {
+			return -(team_score_map.get(lhs.id) - team_score_map.get(rhs.id)); // sort by score in descending order
+		});
+		score_list.append(...team_list.map(team => n({
+			class: 'list-group-item d-flex flex-column p-1',
+			content: [
+				n({
+					class: 'border m-1',
+					content: [
+						n({
+							class: 'pb-1',
+							style: {
+								backgroundColor: team.color,
+								width: `${team_score_map.get(team.id) / max_score * 100}%`,
+							},
+						}),
+					],
+				}),
+				n({
+					class: 'd-flex flex-row flex-wrap align-items-center',
+					content: [
+						n({
+							class: 'badge border m-1',
+							style: {
+								backgroundColor: team.color,
+								color: textColor(team.color),
+							},
+							content: team.name,
+						}),
+						n({
+							class: 'flex-grow-1 text-end m-1',
+							content: team_score_map.get(team.id).toFixed(),
+						}),
+					],
+				}),
+			],
+		})));
+		score_section.classList.remove('d-none');
+	} else {
+		score_section.classList.add('d-none');
 	}
 	// success
-	success_section.innerHTML = '';
+	recent_list.innerHTML = '';
 	if (result.success_list.length !== 0) {
-		success_section.append(
-			n({
-				tag: 'h2',
-				class: 'm-2',
-				content: lexicon.success_list,
-			}),
-			n({
-				class: 'flex-fill',
-				style: {
-					overflowY: 'auto',
-				},
+		const success_list = result.success_list.toSorted((lhs, rhs) => {
+			return -(lhs.timestamp - rhs.timestamp); // sort by timestamp in descending order
+		});
+		recent_list.append(...success_list.map(success => {
+			const station = station_map.get(success.station);
+			const team = state.team_map.get(success.team);
+			const type = success.type === 'conquest' ? lexicon.success_conquest :
+				(success.type === 'neutralization' ? lexicon.success_neutralization : lexicon.success_simple);
+			return n({
+				class: 'list-group-item d-flex flex-column p-1',
 				content: [
 					n({
-						class: 'list-group',
-						content: result.success_list.toSorted((lhs, rhs) => {
-							return -(lhs.timestamp - rhs.timestamp); // sort by timestamp in descending order
-						}).map(success => {
-							const station = station_map.get(success.station);
-							const team = state.team_map.get(success.team);
-							const type = success.type === 'conquest' ? lexicon.success_conquest :
-								(success.type === 'neutralization' ? lexicon.success_neutralization : lexicon.success_simple);
-							return n({
-								class: 'list-group-item d-flex flex-column p-1',
-								content: [
-									n({
-										class: 'm-1',
-										content: type,
-									}),
-									n({
-										class: 'd-flex flex-row flex-wrap justify-content-end align-items-center',
-										content: [
-											n({
-												class: 'flex-grow-1 m-1',
-												content: station.name,
-											}),
-											n({
-												class: 'badge border m-1',
-												style: {
-													backgroundColor: team.color,
-													color: textColor(team.color),
-												},
-												content: team.name,
-											}),
-										],
-									})
-								],
-							});
-						}),
+						class: 'm-1',
+						content: type,
 					}),
+					n({
+						class: 'd-flex flex-row flex-wrap justify-content-end align-items-center',
+						content: [
+							n({
+								class: 'flex-grow-1 m-1',
+								content: station.name,
+							}),
+							n({
+								class: 'badge border m-1',
+								style: {
+									backgroundColor: team.color,
+									color: textColor(team.color),
+								},
+								content: team.name,
+							}),
+						],
+					})
 				],
-			}),
-		);
+			});
+		}));
+		recent_section.classList.remove('d-none');
+	} else {
+		recent_section.classList.add('d-none');
 	}
 	setTimeout(refresh, 10000);
 }
