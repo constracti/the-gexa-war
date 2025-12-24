@@ -45,12 +45,9 @@ function refresh() {
 	point_histogram_div.innerHTML = '';
 	point_histogram_div.append(...frequency_list.map((frequency, points) => n({
 		class: 'list-group-item p-0 d-flex flex-row',
-		style: {
-			overflow: 'hidden',
-		},
 		content: [
 			n({
-				class: points >= (state.point_threshold ?? 0) ? 'text-bg-success p-2' : 'text-bg-danger p-2',
+				class: `text-bg-${points >= (state.point_threshold ?? 0) ? 'success' : 'danger'} px-2 py-1`,
 				style: {
 					minWidth: '2em',
 					width: `${frequency / frequency_max * 100}%`,
@@ -58,7 +55,7 @@ function refresh() {
 				content: points.toString(),
 			}),
 			n({
-				class: 'p-2',
+				class: 'px-2 py-1',
 				content: frequency.toString(),
 			}),
 		],
@@ -98,7 +95,7 @@ function refresh() {
 							backgroundColor: team.color,
 							width: `${player.points / point_sum * 100}%`,
 						},
-						title: player.name,
+						title: `${player.name} ${lexicon.from} ${team.name}`,
 					});
 				}),
 			}));
