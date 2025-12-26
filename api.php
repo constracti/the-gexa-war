@@ -123,15 +123,17 @@ function place_station(int $place): ?int {
 
 // station
 
+// TODO accept multiple players per success
+
 function station_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `capacity`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	return stmt_list($stmt);
 }
 
 function station_with_code_list(): array {
 	global $db;
-	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
+	$stmt = $db->prepare('SELECT `id`, `name`, `code`, `capacity`, `place` FROM `station` ORDER BY `name` ASC, `id` ASC');
 	return stmt_list($stmt);
 }
 
@@ -165,10 +167,10 @@ function station_conqueror(int $station, DT $game_start, DT $game_stop): ?int {
 	return stmt_cell($stmt);
 }
 
-function station_update(int $id, string $name, string $code, ?int $place): void {
+function station_update(int $id, string $name, string $code, int $capacity, ?int $place): void {
 	global $db;
-	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `place` = ? WHERE `id` = ?');
-	$stmt->bind_param('ssii', $name, $code, $place, $id);
+	$stmt = $db->prepare('UPDATE `station` SET `name` = ?, `code` = ?, `capacity` = ?, `place` = ? WHERE `id` = ?');
+	$stmt->bind_param('ssiii', $name, $code, $capacity, $place, $id);
 	$stmt->execute();
 	$stmt->close();
 }
@@ -474,9 +476,17 @@ if (is_post('admin_config')) {
 	$game_start = DT::from_js($game_start);
 	$game_stop = post_string('game_stop');
 	$game_stop = DT::from_js($game_stop);
+	if ($game_stop->to_int() < $game_start->to_int())
+		exit('game_stop');
 	$reward_success = post_int('reward_success');
+	if ($reward_success < 0)
+		exit('reward_success');
 	$reward_conquest = post_int('reward_conquest');
+	if ($reward_conquest < 0)
+		exit('reward_conquest');
 	$reward_rate = post_float('reward_rate');
+	if ($reward_rate < 0)
+		exit('reward_rate');
 	config_set('game_start', $game_start->to_int());
 	config_set('game_stop', $game_stop->to_int());
 	config_set('reward_success', $reward_success);
@@ -494,11 +504,14 @@ if (is_post('station_update')) {
 		exit('id');
 	$name = post_string('name');
 	$code = post_string('code');
+	$capacity = post_int('capacity');
+	if ($capacity <= 0)
+		exit('capacity');
 	$place = post_int_nullable('place');
 	$station_by_place = !is_null($place) ? place_station($place) : NULL;
 	if (!is_null($place) && !is_null($station_by_place) && $id !== $station_by_place)
 		exit('place');
-	station_update($id, $name, $code, $place);
+	station_update($id, $name, $code, $capacity, $place);
 	json([
 		'station_list' => station_with_code_list(),
 	]);

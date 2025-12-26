@@ -5,6 +5,7 @@ export const lexicon = {
 	block: 'Αποκλεισμός',
 	cancel: 'Άκυρο',
 	candidate_count: 'Υποψήφιοι',
+	capacity: 'Χωρητικότητα',
 	delete: 'Διαγραφή',
 	draw: 'Κλήρωση',
 	edit: 'Επεξεργασία',

@@ -4,6 +4,7 @@
  * @param {?string} options.class
  * @param {?string} options.value
  * @param {?boolean} options.disabled
+ * @param {?string} options.min
  * @param {?string} options.name
  * @param {?string} options.placeholder
  * @param {?boolean} options.required
@@ -24,6 +25,8 @@ export function n(options) {
 		options.value = null;
 	if (options.disabled === undefined)
 		options.disabled = null;
+	if (options.min === undefined)
+		options.min = null;
 	if (options.name === undefined)
 		options.name = null;
 	if (options.placeholder === undefined)
@@ -56,6 +59,8 @@ export function n(options) {
 		element.value = options.value;
 	if (options.disabled !== null)
 		element.disabled = options.disabled;
+	if (options.min !== null)
+		element.min = options.min;
 	if (options.name !== null)
 		element.name = options.name;
 	if (options.placeholder !== null)

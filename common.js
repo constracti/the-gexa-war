@@ -6,6 +6,7 @@ import { lexicon } from './lexicon.js';
  * @type {object}
  * @property {number} id
  * @property {string} name
+ * @property {number} capacity - positive integer
  * @property {?number} place
  */
 

@@ -15,6 +15,7 @@ import { lexicon } from './lexicon.js';
  * @property {number} id
  * @property {string} name
  * @property {string} code
+ * @property {number} capacity - positive integer
  * @property {?number} place
  */
 
@@ -69,11 +70,12 @@ function refresh() {
 		login_form.classList.add('d-none');
 		login_form.reset();
 		game_start_input.value = state.game_start;
+		game_start_input.dispatchEvent(new Event('change'));
 		game_stop_input.value = state.game_stop;
 		reward_success_input.value = state.reward_success;
 		reward_conquest_input.value = state.reward_conquest;
 		reward_rate_input.value = state.reward_rate;
-		reward_rate_refresh();
+		reward_rate_input.dispatchEvent(new Event('change'));
 		station_div.innerHTML = '';
 		station_render();
 		team_div.innerHTML = '';
@@ -84,7 +86,6 @@ function refresh() {
 	} else {
 		main_div.classList.add('d-none');
 		config_form.reset();
-		reward_rate_refresh();
 		station_div.innerHTML = '';
 		team_div.innerHTML = '';
 		player_div.innerHTML = '';
@@ -163,6 +164,9 @@ game_start_input.previousElementSibling.innerHTML = lexicon.game_start;
  */
 const game_stop_input = document.getElementById('game-stop-input');
 game_stop_input.previousElementSibling.innerHTML = lexicon.game_stop;
+game_start_input.addEventListener('change', () => {
+	game_stop_input.min = game_start_input.value;
+});
 
 /**
  * @type {HTMLInputElement}
@@ -182,20 +186,19 @@ reward_conquest_input.previousElementSibling.innerHTML = lexicon.reward_conquest
 const reward_rate_input = document.getElementById('reward-rate-input');
 reward_rate_input.previousElementSibling.innerHTML = lexicon.reward_rate;
 
-function reward_rate_refresh() {
-	const html = [`${lexicon.reward_rate_begin}: 1.00`];
-	const game_start = Date.parse(game_start_input.value);
-	const game_stop = Date.parse(game_stop_input.value);
-	const game_duration_in_hours = (game_stop - game_start) / (60 * 60 * 1000);
-	const reward_rate = parseFloat(reward_rate_input.value);
-	const reward_rate_begin = 1;
-	const reward_rate_end = reward_rate_begin + reward_rate * game_duration_in_hours;
-	if (!isNaN(reward_rate_end))
-		html.push(`${lexicon.reward_rate_end}: ${reward_rate_end.toFixed(2)}`);
-	reward_rate_input.nextElementSibling.innerHTML = html.join(' - ');
-}
 [game_start_input, game_stop_input, reward_rate_input].forEach(element => {
-	element.addEventListener('change', reward_rate_refresh);
+	element.addEventListener('change', () => {
+		const html = [`${lexicon.reward_rate_begin}: 1.00`];
+		const game_start = Date.parse(game_start_input.value);
+		const game_stop = Date.parse(game_stop_input.value);
+		const game_duration_in_hours = (game_stop - game_start) / (60 * 60 * 1000);
+		const reward_rate = parseFloat(reward_rate_input.value);
+		const reward_rate_begin = 1;
+		const reward_rate_end = reward_rate_begin + reward_rate * game_duration_in_hours;
+		if (!isNaN(reward_rate_end))
+			html.push(`${lexicon.reward_rate_end}: ${reward_rate_end.toFixed(2)}`);
+		reward_rate_input.nextElementSibling.innerHTML = html.join(' - ');
+	});
 });
 
 document.getElementById('submit-button').innerHTML = lexicon.submit;
@@ -250,6 +253,10 @@ function station_render() {
 				content: station.code,
 			}),
 			n({
+				class: 'm-1',
+				content: `${lexicon.capacity}: ${station.capacity}`,
+			}),
+			n({
 				class: 'badge text-bg-info m-1',
 				content: station.place !== null ? place_map.get(station.place).name : '-',
 			}),
@@ -302,6 +309,21 @@ function station_render() {
 								name: 'code',
 								placeholder: lexicon.password,
 								required: true,
+							}),
+						],
+					}),
+					n({
+						class: 'flex-grow-1 m-1',
+						content: [
+							n({
+								tag: 'input',
+								class: 'form-control form-control-sm',
+								value: station.capacity.toString(),
+								min: '1',
+								name: 'capacity',
+								placeholder: lexicon.capacity,
+								required: true,
+								type: 'number',
 							}),
 						],
 					}),

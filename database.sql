@@ -28,6 +28,7 @@ CREATE TABLE `station` (
 	`id` int(11) NOT NULL,
 	`name` varchar(255) NOT NULL,
 	`code` varchar(255) NOT NULL,
+	`capacity` int(11) NOT NULL,
 	`place` int(11) DEFAULT NULL
 );
 

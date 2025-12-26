@@ -303,6 +303,7 @@ async function refresh() {
 	}
 	// score from successes and previous conquests
 	result.success_list.forEach(success => {
+		const station = station_map.get(success.station);
 		const conquest = state.station_conquest_map.get(success.station);
 		if (success.type !== 'simple') {
 			// add points to previous conqueror
@@ -317,7 +318,7 @@ async function refresh() {
 				state.station_conquest_map.set(success.station, null);
 		}
 		// add success points
-		team_score_map.set(success.team, team_score_map.get(success.team) + team_score_success(success.timestamp));
+		team_score_map.set(success.team, team_score_map.get(success.team) + team_score_success(success.timestamp) / station.capacity);
 	});
 	// score from current conquests
 	result.station_list.forEach(station => {
