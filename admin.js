@@ -1,4 +1,4 @@
-import { api, textColor } from './common.js';
+import { api, team_badge } from './common.js';
 import { n, n_option_list } from './element.js';
 import { lexicon } from './lexicon.js';
 
@@ -400,14 +400,7 @@ function team_render() {
 		const player_count = state.player_list.filter(player => player.team === team.id).length;
 		const element_list = [
 			// row text
-			n({
-				class: 'badge border m-1',
-				style: {
-					backgroundColor: team.color,
-					color: textColor(team.color),
-				},
-				content: team.name,
-			}),
+			team_badge(team),
 			n({
 				class: 'flex-grow-1 m-0',
 			}),
@@ -646,14 +639,7 @@ function player_render() {
 				class: 'flex-grow-1 m-1',
 				content: player.name,
 			}),
-			n({
-				class: 'badge border m-1',
-				style: {
-					backgroundColor: team.color,
-					color: textColor(team.color),
-				},
-				content: team.name,
-			}),
+			team_badge(team),
 			n({
 				class: 'd-flex flex-row',
 				content: [

@@ -1,4 +1,4 @@
-import { api, textColor } from './common.js';
+import { api, team_badge } from './common.js';
 import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
@@ -108,14 +108,7 @@ function refresh() {
 							class: 'm-1',
 							content: winner.name,
 						}),
-						n({
-							class: 'badge border m-1',
-							style: {
-								backgroundColor: team.color,
-								color: textColor(team.color),
-							},
-							content: team.name,
-						}),
+						team_badge(team),
 					],
 				}));
 				player_map.delete(winner.id);

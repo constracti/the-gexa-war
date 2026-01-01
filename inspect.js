@@ -1,4 +1,4 @@
-import { api, textColor } from './common.js';
+import { api, team_badge } from './common.js';
 import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
@@ -87,14 +87,7 @@ const inspect_div = document.getElementById('inspect-div');
 					class: 'm-1',
 					content: interval.player.name,
 				}),
-				n({
-					class: 'badge border m-1',
-					style: {
-						backgroundColor: team.color,
-						color: textColor(team.color),
-					},
-					content: team.name,
-				}),
+				team_badge(team),
 				n({
 					class: 'flex-grow-1 m-1',
 					content: [

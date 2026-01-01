@@ -1,4 +1,4 @@
-import { api, textColor } from './common.js';
+import { api, team_badge } from './common.js';
 import { n, n_option_list } from './element.js';
 import { lexicon } from './lexicon.js';
 
@@ -345,14 +345,7 @@ function history_render() {
 				n({
 					class: 'd-flex flex-row align-items-center',
 					content: [
-						n({
-							class: 'badge border m-1',
-							style: {
-								backgroundColor: team.color,
-								color: textColor(team.color),
-							},
-							content: team.name,
-						}),
+						team_badge(team),
 						n({
 							class: 'm-1',
 							content: player.name,

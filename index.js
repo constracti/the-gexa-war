@@ -1,4 +1,4 @@
-import { api, textColor } from './common.js';
+import { api, human_duration, team_badge } from './common.js';
 import { n } from './element.js';
 import { lexicon } from './lexicon.js';
 
@@ -84,22 +84,6 @@ document.getElementById('map').addEventListener('click', () => {
 const time_div = document.getElementById('time-div');
 
 /**
- * @param {number} seconds
- * @returns {string}
- * @throws {RangeError}
- */
-function human_duration(seconds) {
-	if (seconds < 0)
-		throw new RangeError();
-	seconds = Math.floor(seconds);
-	let minutes = Math.floor(seconds / 60);
-	seconds -= minutes * 60;
-	let hours = Math.floor(minutes / 60);
-	minutes -= hours * 60;
-	return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-/**
  * 
  * @param {number} time_start
  * @param {number} time_stop
@@ -171,14 +155,7 @@ function place_select(place) {
 						class: 'm-1',
 						content: station.name,
 					}),
-					team !== null ? n({
-						class: 'badge border m-1',
-						style: {
-							backgroundColor: team.color,
-							color: textColor(team.color),
-						},
-						content: team.name,
-					}) : n({}),
+					team !== null ? team_badge(team) : n({}),
 					n({
 						tag: 'button',
 						class: 'btn-close m-1',
@@ -350,7 +327,7 @@ async function refresh() {
 	// time
 	time_div.classList.remove('d-none');
 	timer_tick(result.time_start, result.time_stop, result.time_now, ms_refresh);
-	// team
+	// score
 	score_list.innerHTML = '';
 	if (result.team_list.length !== 0) {
 		const max_score = Math.max(...team_score_map.values(), 1);
@@ -375,14 +352,7 @@ async function refresh() {
 				n({
 					class: 'd-flex flex-row flex-wrap align-items-center',
 					content: [
-						n({
-							class: 'badge border m-1',
-							style: {
-								backgroundColor: team.color,
-								color: textColor(team.color),
-							},
-							content: team.name,
-						}),
+						team_badge(team),
 						n({
 							class: 'flex-grow-1 text-end m-1',
 							content: team_score_map.get(team.id).toFixed(),
@@ -395,7 +365,7 @@ async function refresh() {
 	} else {
 		score_section.classList.add('d-none');
 	}
-	// success
+	// recent
 	recent_list.innerHTML = '';
 	if (result.success_list.length !== 0) {
 		const success_list = result.success_list.toSorted((lhs, rhs) => {
@@ -420,16 +390,9 @@ async function refresh() {
 								class: 'flex-grow-1 m-1',
 								content: station.name,
 							}),
-							n({
-								class: 'badge border m-1',
-								style: {
-									backgroundColor: team.color,
-									color: textColor(team.color),
-								},
-								content: team.name,
-							}),
+							team_badge(team),
 						],
-					})
+					}),
 				],
 			});
 		}));
