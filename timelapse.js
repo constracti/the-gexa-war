@@ -26,20 +26,90 @@ import { lexicon } from './lexicon.js';
  */
 
 /**
- * @typedef Game
- * @type {object}
- * @property {number} time_start
- * @property {number} time_stop
- * @property {number} time_now
- * @property {number} reward_success
- * @property {number} reward_conquest
- * @property {number} reward_rate
- * @property {Station[]} station_list
- * @property {Team[]} team_list
- * @property {Success[]} success_list
+ * @typedef {import('./common.js').Game} Game
  */
 
+/**
+ * @typedef State
+ * @type {object}
+ * @property {Game} game
+ * @property {number} speed
+ * @property {number} time_now
+ * @property {number} time_max
+ * @property {?number} timer_id
+ */
+
+// TODO align control div
+
+/**
+ * @type {HTMLInputElement}
+ */
+const speed_input = document.getElementById('speed-input');
+speed_input.previousElementSibling.innerHTML = lexicon.speed;
+speed_input.addEventListener('change', () => {
+	const speed = parseInt(speed_input.value);
+	if (isNaN(speed) || speed < 1)
+		return;
+	state.speed = speed;
+});
+
 const time_div = document.getElementById('time-div');
+
+/**
+ * @type {HTMLInputElement}
+ */
+const time_input = document.getElementById('time-input');
+time_input.previousElementSibling.firstElementChild.innerHTML = lexicon.time;
+time_input.addEventListener('input', () => {
+	const time_now = parseInt(time_input.value);
+	if (isNaN(time_now))
+		return;
+	state.time_now = time_now;
+	render_control();
+	render_main();
+});
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const play_button = document.getElementById('play-button');
+play_button.addEventListener('click', () => {
+	if (state.timer_id !== null)
+		return;
+	const restart = state.time_now === state.time_max;
+	if (restart) {
+		state.time_now = state.game.time_start;
+		time_input.value = state.time_now.toFixed();
+	}
+	state.timer_id = setInterval(() => {
+		if (state.timer_id === null)
+			return;
+		state.time_now += state.speed;
+		if (state.time_now >= state.time_max) {
+			state.time_now = state.time_max;
+			clearInterval(state.timer_id);
+			state.timer_id = null;
+		}
+		time_input.value = state.time_now.toFixed();
+		render_control();
+		render_main();
+	}, 1000);
+	render_control();
+	if (restart)
+		render_main();
+});
+
+/**
+ * @type {HTMLButtonElement}
+ */
+const pause_button = document.getElementById('pause-button');
+pause_button.addEventListener('click', () => {
+	if (state.timer_id === null)
+		return;
+	clearInterval(state.timer_id);
+	state.timer_id = null;
+	render_control();
+});
 
 /**
  * @type {HTMLDivElement}
@@ -74,25 +144,55 @@ recent_section.firstElementChild.innerHTML = lexicon.success_list;
  */
 const recent_list = document.getElementById('recent-list');
 
-/**
- * @type {Game}
- */
-const result = await api.get('game');
-result.time_now = result.time_start;
+const state = await (async () => {
+	/**
+	 * @type {Game}
+	 */
+	const result = await api.get('game');
+	/**
+	 * @type {State}
+	 */
+	const state = {
+		game: result,
+		speed: 60,
+		time_now: result.time_start,
+		time_max: Math.min(Math.max(result.time_now, result.time_start), result.time_stop),
+		timer_id: null,
+	};
+	speed_input.value = state.speed.toFixed();
+	time_input.min = state.game.time_start.toFixed();
+	time_input.max = state.time_max.toFixed();
+	time_input.value = state.time_now.toFixed();
+	return state;
+})();
 
-function refresh() {
-	const station_map = new Map(result.station_list.map(station => [station.id, station]));
-	const station_conquest_map = new Map(result.station_list.map(station => [station.id, null]));
-	const team_map = new Map(result.team_list.map(team => [team.id, team]));
-	const team_score_map = new Map(result.team_list.map(team => [team.id, 0]));
-	const success_list = result.success_list.filter(success => success.timestamp < result.time_now).sort((lhs, rhs) => lhs.timestamp - rhs.timestamp);
+function render_control() {
+	time_div.innerHTML = human_duration(state.time_now - state.game.time_start);
+	if (state.timer_id === null) {
+		play_button.classList.remove('disabled');
+		pause_button.classList.add('disabled');
+	} else {
+		play_button.classList.add('disabled');
+		pause_button.classList.remove('disabled');
+	}
+}
+render_control();
+
+document.getElementById('control-div').classList.remove('d-none');
+
+function render_main() {
+	const station_map = new Map(state.game.station_list.map(station => [station.id, station]));
+	const station_conquest_map = new Map(state.game.station_list.map(station => [station.id, null]));
+	const team_map = new Map(state.game.team_list.map(team => [team.id, team]));
+	const team_score_map = new Map(state.game.team_list.map(team => [team.id, 0]));
+	const success_list = state.game.success_list.filter(success => success.timestamp <= state.time_now).sort((lhs, rhs) => lhs.timestamp - rhs.timestamp);
 	/**
 	 * @param {number} success_timestamp success timestamp in seconds
 	 * @returns {number}
 	 */
 	function team_score_success(success_timestamp) {
-		const current_value = 1 + result.reward_rate / 3600 * (success_timestamp - result.time_start);
-		return result.reward_success * current_value;
+		const current_value = 1 + state.game.reward_rate / 3600 * (success_timestamp - state.game.time_start);
+		return state.game.reward_success * current_value;
 	}
 	/**
 	 * @param {number} start_timestamp conquest start timestamp in seconds
@@ -102,8 +202,8 @@ function refresh() {
 	function team_score_conquest(start_timestamp, stop_timestamp) {
 		const duration = stop_timestamp - start_timestamp // seconds
 		const mean_timestamp = (start_timestamp + stop_timestamp) / 2 // seconds
-		const mean_value = 1 + result.reward_rate / 3600 * (mean_timestamp - result.time_start);
-		return result.reward_conquest / 60 * mean_value * duration;
+		const mean_value = 1 + state.game.reward_rate / 3600 * (mean_timestamp - state.game.time_start);
+		return state.game.reward_conquest / 60 * mean_value * duration;
 	}
 	// score from successes and previous conquests
 	success_list.forEach(success => {
@@ -125,24 +225,22 @@ function refresh() {
 		team_score_map.set(success.team, team_score_map.get(success.team) + team_score_success(success.timestamp) / station.capacity);
 	});
 	// score from current conquests
-	result.station_list.forEach(station => {
+	state.game.station_list.forEach(station => {
 		const conquest = station_conquest_map.get(station.id);
 		if (conquest === null)
 			return;
-		const conquest_score = team_score_conquest(conquest.timestamp, result.time_now);
+		const conquest_score = team_score_conquest(conquest.timestamp, state.time_now);
 		team_score_map.set(conquest.team, team_score_map.get(conquest.team) + conquest_score);
 	});
 	// score normalization
-	result.team_list.forEach(team => {
+	state.game.team_list.forEach(team => {
 		if (team.players > 0) {
 			team_score_map.set(team.id, team_score_map.get(team.id) / team.players);
 		}
 	});
-	// time
-	time_div.innerHTML = human_duration(result.time_now - result.time_start);
 	// station
 	station_list.innerHTML = '';
-	station_list.append(...result.station_list.map(station => {
+	station_list.append(...state.game.station_list.map(station => {
 		const conquest = station_conquest_map.get(station.id);
 		const team = conquest !== null ? team_map.get(conquest.team) : null;
 		return n({
@@ -163,7 +261,7 @@ function refresh() {
 	}));
 	// score
 	score_list.innerHTML = '';
-	const team_list = result.team_list.toSorted((lhs, rhs) => -(team_score_map.get(lhs.id) - team_score_map.get(rhs.id)));
+	const team_list = state.game.team_list.toSorted((lhs, rhs) => -(team_score_map.get(lhs.id) - team_score_map.get(rhs.id)));
 	score_list.append(...team_list.map(team => n({
 		class: 'list-group-item d-flex flex-row justify-content-between align-items-center p-1',
 		content: [
@@ -203,18 +301,14 @@ function refresh() {
 						}),
 						n({
 							class: 'm-1',
-							content: human_duration(success.timestamp - result.time_start),
+							content: human_duration(success.timestamp - state.game.time_start),
 						}),
 					],
 				}),
 			],
 		});
 	}));
-	// loop
-	if (result.time_now < result.time_stop) {
-		result.time_now = Math.min(result.time_now + 30, result.time_stop);
-		setTimeout(refresh, 1000);
-	}
 }
+render_main();
 
-refresh();
+document.getElementById('main-div').classList.remove('d-none');

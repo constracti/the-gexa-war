@@ -11,11 +11,23 @@
 		<style id="style"></style>
 	</head>
 	<body class="d-flex flex-column p-2">
-		<div class="d-flex flex-row justify-content-between align-items-center" id="heading-section">
-			<h1 class="m-2 fw-bold"></h1>
-			<div class="m-2" id="time-div"></div>
+		<h1 class="m-2 fw-bold"></h1>
+		<div class="d-flex flex-row align-items-end d-none" id="control-div">
+			<div class="m-2">
+				<label class="form-label" for="speed-input"></label>
+				<input class="form-control" id="speed-input" type="number" min="1">
+			</div>
+			<div class="flex-grow-1 d-flex flex-column m-2">
+				<label class="form-label d-flex flex-row justify-content-between align-items-center" for="time-input">
+					<div></div>
+					<div id="time-div"></div>
+				</label>
+				<input class="form-range" id="time-input" type="range">
+			</div>
+			<button class="btn btn-primary m-2" id="play-button">&#x23F5;</button>
+			<button class="btn btn-primary m-2" id="pause-button">&#x23F8;</button>
 		</div>
-		<div class="row m-0">
+		<div class="row m-0 d-none" id="main-div">
 			<section class="col-6 p-0 d-flex flex-column" id="station-section">
 				<h2 class="m-2"></h2>
 				<div class="row m-0" id="station-list"></div>

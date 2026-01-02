@@ -26,17 +26,7 @@ import { lexicon } from './lexicon.js';
  */
 
 /**
- * @typedef Game
- * @type {object}
- * @property {number} time_start
- * @property {number} time_stop
- * @property {number} time_now
- * @property {number} reward_success
- * @property {number} reward_conquest
- * @property {number} reward_rate
- * @property {Station[]} station_list
- * @property {Team[]} team_list
- * @property {Success[]} success_list
+ * @typedef {import('./common.js').Game} Game
  */
 
 /**
