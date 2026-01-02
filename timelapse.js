@@ -39,8 +39,6 @@ import { lexicon } from './lexicon.js';
  * @property {?number} timer_id
  */
 
-// TODO align control div
-
 /**
  * @type {HTMLInputElement}
  */
@@ -53,13 +51,14 @@ speed_input.addEventListener('change', () => {
 	state.speed = speed;
 });
 
+document.getElementById('time-label').innerHTML = lexicon.time;
+
 const time_div = document.getElementById('time-div');
 
 /**
  * @type {HTMLInputElement}
  */
 const time_input = document.getElementById('time-input');
-time_input.previousElementSibling.firstElementChild.innerHTML = lexicon.time;
 time_input.addEventListener('input', () => {
 	const time_now = parseInt(time_input.value);
 	if (isNaN(time_now))
